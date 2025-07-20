@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oh Balls 2 - Physics Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="ui-header">
+            <h1>OH BALLS 2</h1>
+            <div class="controls">
+                <span>Use ← → arrows to move</span>
+            </div>
+        </div>
+        <canvas id="gameCanvas" width="1024" height="768"></canvas>
+        <div class="ui-footer">
+            <div class="ball-info">
+                <span id="currentBallSize">Next Ball: Size ?</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matter.js v0.20 local -->
+    <script src="matter.min.js"></script>
+    
+    <!-- Game modules -->
+    <script type="module" src="js/physics.js"></script>
+    <script type="module" src="js/ball.js"></script>
+    <script type="module" src="js/input.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+/* Cyberpunk Theme CSS */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 50%, #0a1a1a 100%);
+    font-family: 'Courier New', monospace;
+    color: #00ffff;
+    overflow: hidden;
+    height: 100vh;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 20px;
+}
+
+.ui-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 1024px;
+    margin-bottom: 10px;
+    padding: 10px 20px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 2px solid #00ffff;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.ui-header h1 {
+    font-size: 2.5em;
+    text-shadow: 0 0 10px #00ffff;
+    letter-spacing: 3px;
+}
+
+.controls {
+    font-size: 1.2em;
+    color: #ff00ff;
+    text-shadow: 0 0 5px #ff00ff;
+}
+
+#gameCanvas {
+    border: 3px solid #00ffff;
+    border-radius: 8px;
+    background: #111111;
+    box-shadow: 
+        0 0 30px rgba(0, 255, 255, 0.5),
+        inset 0 0 30px rgba(0, 255, 255, 0.1);
+}
+
+.ui-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 1024px;
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: rgba(255, 0, 255, 0.1);
+    border: 2px solid #ff00ff;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+}
+
+.ball-info {
+    font-size: 1.4em;
+    color: #ff00ff;
+    text-shadow: 0 0 8px #ff00ff;
+    font-weight: bold;
+}
+
+/* Glowing effects */
+@keyframes glow {
+    0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.6); }
+    100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+}
+
+.ui-header, .ui-footer {
+    animation: glow 2s ease-in-out infinite;
+}
