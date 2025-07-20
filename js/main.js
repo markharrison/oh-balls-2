@@ -68,9 +68,9 @@ class Game {
         this.clock.currentTime = currentTime;
         this.clock.deltaTime = this.clock.currentTime - this.clock.lastTime;
         
-        // Ensure deltaTime is reasonable (cap at 50ms to prevent large jumps)
-        if (this.clock.deltaTime > 50) {
-            this.clock.deltaTime = 50;
+        // Handle first frame or prevent large jumps
+        if (this.clock.deltaTime <= 0 || this.clock.deltaTime > 16.667) {
+            this.clock.deltaTime = 16.667; // Cap at 60fps timing (1000/60 = 16.667ms)
         }
     }
 
@@ -78,8 +78,8 @@ class Game {
         // Update input handling
         this.inputHandler.update();
         
-        // Update physics engine
-        this.physicsEngine.update();
+        // Update physics engine with frame-rate independent timing
+        this.physicsEngine.update(this.clock.deltaTime);
         
         // Update ball manager (cleanup, spawning logic, etc.)
         this.ballManager.cleanup();

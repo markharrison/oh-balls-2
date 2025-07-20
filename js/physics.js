@@ -67,18 +67,11 @@ export class PhysicsEngine {
     }
 
     start() {
-        // Create runner for consistent timing
-        this.runner = Matter.Runner.create({
-            delta: 1000 / 60 // 60 FPS
-        });
-        Matter.Runner.run(this.runner, this.engine);
         console.log('Physics engine started');
     }
 
     stop() {
-        if (this.runner) {
-            Matter.Runner.stop(this.runner);
-        }
+        // No runner to stop since we're using manual engine updates
     }
 
     addBody(body) {
@@ -101,6 +94,8 @@ export class PhysicsEngine {
         // Get all bodies and render them
         const bodies = Matter.Composite.allBodies(this.world);
         
+        console.log('Rendering', bodies.length, 'bodies'); // Debug log
+        
         bodies.forEach(body => {
             this.renderBody(body);
         });
@@ -110,6 +105,8 @@ export class PhysicsEngine {
         const ctx = this.ctx;
         const position = body.position;
         const angle = body.angle;
+        
+        console.log('Rendering body:', body.label, 'at', position.x, position.y); // Debug log
         
         ctx.save();
         ctx.translate(position.x, position.y);
@@ -139,6 +136,8 @@ export class PhysicsEngine {
             // For a circle, the radius is simply half the width (or height) of the bounding box
             const radius = (body.bounds.max.x - body.bounds.min.x) / 2;
             
+            console.log('Drawing circle with radius:', radius); // Debug log
+            
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, 2 * Math.PI);
             ctx.fill();
@@ -165,7 +164,10 @@ export class PhysicsEngine {
         });
     }
 
-    update() {
+    update(deltaTime) {
+        // Update physics engine with frame-rate independent timing
+        Matter.Engine.update(this.engine, deltaTime);
+        
         // Call stabilization on each frame
         this.stabilizeBodies();
         
