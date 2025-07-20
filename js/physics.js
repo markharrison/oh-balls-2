@@ -22,7 +22,7 @@ export class PhysicsEngine {
     }
 
     setupBoundaries() {
-        const wallThickness = 50;
+        const wallThickness = 17; // Reduced from 50 to about 1/3 (50/3 ≈ 17)
         const width = 1024;
         const height = 768;
 

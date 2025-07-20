@@ -1,11 +1,12 @@
 // Ball Module for creating and managing balls
 export class Ball {
-    constructor(physicsEngine, x, y, size) {
+    constructor(physicsEngine, x, y, size, isCurrentBall = false) {
         this.physicsEngine = physicsEngine;
         this.size = size;
         this.radius = this.calculateRadius(size);
         this.mass = this.calculateMass(size);
         this.color = this.getColorForSize(size);
+        this.isCurrentBall = isCurrentBall;
         
         // Create Matter.js body for the ball
         this.body = Matter.Bodies.circle(x, y, this.radius, {
@@ -21,6 +22,11 @@ export class Ball {
             },
             label: 'ball'
         });
+
+        // If this is the current ball, make it static (not affected by gravity)
+        if (this.isCurrentBall) {
+            Matter.Body.setStatic(this.body, true);
+        }
 
         // Add to physics world
         this.physicsEngine.addBody(this.body);
@@ -78,6 +84,14 @@ export class Ball {
         Matter.Body.applyForce(this.body, this.body.position, { x, y });
     }
 
+    // Release ball from static state (when dropped)
+    release() {
+        if (this.isCurrentBall) {
+            Matter.Body.setStatic(this.body, false);
+            this.isCurrentBall = false;
+        }
+    }
+
     destroy() {
         this.physicsEngine.removeBody(this.body);
     }
@@ -114,7 +128,7 @@ export class BallManager {
         const x = 512; // Center of canvas (1024/2)
         const y = 50;  // Near top
         
-        this.currentBall = new Ball(this.physicsEngine, x, y, this.nextBallSize);
+        this.currentBall = new Ball(this.physicsEngine, x, y, this.nextBallSize, true);
         this.balls.push(this.currentBall);
         
         // Generate next ball size
@@ -126,6 +140,9 @@ export class BallManager {
 
     dropCurrentBall() {
         if (this.currentBall) {
+            // Release the ball from static state so gravity affects it
+            this.currentBall.release();
+            
             // Release the ball from player control
             this.currentBall = null;
             
@@ -159,15 +176,33 @@ export class BallManager {
     moveCurrentBall(direction) {
         if (!this.currentBall) return;
 
-        const moveForce = 0.002;
-        const maxSpeed = 5;
-        
-        // Apply horizontal force
-        let forceX = direction * moveForce;
-        
-        // Limit horizontal speed
-        if (Math.abs(this.currentBall.body.velocity.x) < maxSpeed) {
-            this.currentBall.applyForce(forceX, 0);
+        // For static balls (current ball), use position updates instead of forces
+        if (this.currentBall.isCurrentBall) {
+            const currentPos = this.currentBall.getPosition();
+            const moveDistance = 5; // Distance to move per frame
+            let newX = currentPos.x + (direction * moveDistance);
+            
+            // Keep within bounds (accounting for ball radius)
+            const ballRadius = this.currentBall.radius;
+            const wallThickness = 17; // Updated wall thickness
+            const minX = wallThickness + ballRadius;
+            const maxX = 1024 - wallThickness - ballRadius;
+            
+            newX = Math.max(minX, Math.min(maxX, newX));
+            
+            this.currentBall.setPosition(newX, currentPos.y);
+        } else {
+            // For dropped balls, use force-based movement (if needed)
+            const moveForce = 0.002;
+            const maxSpeed = 5;
+            
+            // Apply horizontal force
+            let forceX = direction * moveForce;
+            
+            // Limit horizontal speed
+            if (Math.abs(this.currentBall.body.velocity.x) < maxSpeed) {
+                this.currentBall.applyForce(forceX, 0);
+            }
         }
     }
 
