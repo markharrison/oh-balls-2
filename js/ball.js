@@ -13,7 +13,7 @@ export class Ball {
             density: this.mass / (Math.PI * this.radius * this.radius), // Density = mass/area
             friction: 0.3,
             frictionAir: 0.01, // Air resistance to help with stability
-            restitution: 0.7, // Bounciness with energy loss
+            restitution: 0.9, // Increased bounciness for more bouncy ball-to-ball collisions
             render: {
                 fillStyle: this.color,
                 strokeStyle: '#ffffff',

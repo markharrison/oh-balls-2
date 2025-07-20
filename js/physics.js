@@ -35,7 +35,7 @@ export class PhysicsEngine {
                 lineWidth: 3
             },
             friction: 0.3,
-            restitution: 0.6,
+            restitution: 1.0,
             label: 'ground'
         });
 
@@ -47,7 +47,7 @@ export class PhysicsEngine {
                 lineWidth: 3
             },
             friction: 0.3,
-            restitution: 0.6,
+            restitution: 1.0,
             label: 'leftWall'
         });
 
@@ -59,7 +59,7 @@ export class PhysicsEngine {
                 lineWidth: 3
             },
             friction: 0.3,
-            restitution: 0.6,
+            restitution: 1.0,
             label: 'rightWall'
         });
 
@@ -69,8 +69,7 @@ export class PhysicsEngine {
     start() {
         // Create runner for consistent timing
         this.runner = Matter.Runner.create({
-            delta: 1000 / 60, // 60 FPS
-            isFixed: true
+            delta: 1000 / 60 // 60 FPS
         });
         Matter.Runner.run(this.runner, this.engine);
         console.log('Physics engine started');
