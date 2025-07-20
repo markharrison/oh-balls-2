@@ -137,7 +137,8 @@ export class PhysicsEngine {
             }
         } else {
             // Render circle (ball)
-            const radius = Math.sqrt((body.bounds.max.x - body.bounds.min.x) * (body.bounds.max.y - body.bounds.min.y) / Math.PI) / 2;
+            // For a circle, the radius is simply half the width (or height) of the bounding box
+            const radius = (body.bounds.max.x - body.bounds.min.x) / 2;
             
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, 2 * Math.PI);
