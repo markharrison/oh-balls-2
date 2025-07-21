@@ -71,7 +71,6 @@ export class InputHandler {
     }
 
     dropBall() {
-        console.log('Drop ball requested');
         // Drop the current ball
         this.ballManager.dropCurrentBall();
     }

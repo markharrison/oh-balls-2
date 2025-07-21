@@ -132,14 +132,11 @@ export class BallManager {
 
     spawnBall() {
         if (this.currentBall) {
-            console.log('Cannot spawn ball - current ball already exists');
             return; // Already have a ball being controlled
         }
 
         const x = 512; // Center of canvas (1024/2)
         const y = 50;  // Near top
-        
-        console.log('Spawning new ball - size:', this.nextBallSize);
         
         this.currentBall = new Ball(this.physicsEngine, x, y, this.nextBallSize, true);
         this.balls.push(this.currentBall);
@@ -153,11 +150,8 @@ export class BallManager {
 
     dropCurrentBall() {
         if (!this.currentBall) {
-            console.log('No current ball to drop');
             return; // No ball to drop
         }
-
-        console.log('Dropping current ball - size:', this.currentBall.size);
 
         // Release the ball from static state so gravity affects it
         this.currentBall.release();
@@ -170,14 +164,11 @@ export class BallManager {
         
         // Clear any existing spawn timeout to prevent multiple balls
         if (this.spawnTimeoutId) {
-            console.log('Clearing existing spawn timeout');
             clearTimeout(this.spawnTimeoutId);
         }
         
         // Schedule next ball spawn after exactly 2 seconds
-        console.log('Scheduling next ball spawn in 2 seconds');
         this.spawnTimeoutId = setTimeout(() => {
-            console.log('Spawning next ball after timeout');
             this.spawnBall();
             this.spawnTimeoutId = null;
         }, 2000);
