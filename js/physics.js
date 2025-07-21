@@ -161,119 +161,30 @@ export class PhysicsEngine {
 
 
 
-    // Method to ensure bodies come to rest (prevent jittering)
+    // Simplified stabilization - only for very settled balls
     stabilizeBodies() {
-        const currentTime = performance.now();
         const bodies = Matter.Composite.allBodies(this.world);
         bodies.forEach(body => {
             if (!body.isStatic && body.label === 'ball') {
                 const velocity = body.velocity;
-                const angularVelocity = body.angularVelocity;
                 const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
                 
-                // Check if this ball was dropped recently
-                const timeSinceDrop = body.dropTime ? currentTime - body.dropTime : Infinity;
-                
-                // Don't stabilize balls that were dropped recently (within 3 seconds)
-                if (timeSinceDrop < 3000) {
-                    return; // Skip stabilization for recently dropped balls
-                }
-                
-                // Only apply stabilization to balls that are actually settling, not freshly dropped balls
-                const microVelocityThreshold = 0.02;
-                const microAngularThreshold = 0.02;
-                const dampingVelocityThreshold = 0.1;
-                const dampingAngularThreshold = 0.05;
-                
-                // Don't force sleep balls that are above ground level (they should fall)
-                const groundLevel = 768 - 17; // canvas height - wall thickness
-                const ballRadius = body.circleRadius || 20;
-                const isAboveGround = body.position.y < groundLevel - ballRadius - 50; // 50px buffer
-                
-                // Only apply aggressive stabilization if ball is near or on the ground
-                if (!isAboveGround) {
-                    // Force complete stop for very small movements only when near ground
-                    if (speed < microVelocityThreshold && Math.abs(angularVelocity) < microAngularThreshold) {
+                // Only stabilize balls that are barely moving and have been settled for a while
+                if (speed < 0.01 && Math.abs(body.angularVelocity) < 0.01) {
+                    // Check if ball is resting on ground or other balls
+                    const groundLevel = 768 - 17; // canvas height - wall thickness
+                    const ballRadius = body.circleRadius || 20;
+                    
+                    if (body.position.y > groundLevel - ballRadius - 5) {
+                        // Ball is on ground and barely moving - safe to stop
                         Matter.Body.setVelocity(body, { x: 0, y: 0 });
                         Matter.Body.setAngularVelocity(body, 0);
-                        
-                        // Only force sleep if ball is actually resting, not just slow
-                        if (body.position.y > groundLevel - ballRadius - 10) {
-                            Matter.Sleeping.set(body, true);
-                        }
                     }
-                    // Enhanced micro-velocity damping for near-stationary bodies
-                    else if (speed < dampingVelocityThreshold) {
-                        Matter.Body.setVelocity(body, {
-                            x: velocity.x * 0.85,
-                            y: velocity.y * 0.85
-                        });
-                    }
-                    
-                    // Enhanced micro angular velocity damping
-                    if (Math.abs(angularVelocity) < dampingAngularThreshold) {
-                        Matter.Body.setAngularVelocity(body, angularVelocity * 0.8);
-                    }
-                    
-                    // Additional stability check for balls in contact with others
-                    this.stabilizeStackedBalls(body);
                 }
             }
         });
     }
-    
-    // Additional method to stabilize balls that are in contact (stacked)
-    stabilizeStackedBalls(body) {
-        const position = body.position;
-        const velocity = body.velocity;
-        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-        
-        // Only stabilize balls that are near the ground and moving very slowly
-        const groundLevel = 768 - 17; // canvas height - wall thickness
-        const ballRadius = body.circleRadius || 20;
-        const isNearGround = body.position.y > groundLevel - ballRadius - 50;
-        
-        // If ball is moving very slowly and is near ground level
-        if (speed < 0.05 && isNearGround) {
-            const bodies = Matter.Composite.allBodies(this.world);
-            let hasContact = false;
-            
-            // Check if this ball is in contact with other balls or ground
-            bodies.forEach(otherBody => {
-                if (otherBody !== body && !otherBody.isStatic) {
-                    const distance = Matter.Vector.magnitude(
-                        Matter.Vector.sub(position, otherBody.position)
-                    );
-                    const combinedRadius = (body.circleRadius || 20) + (otherBody.circleRadius || 20);
-                    
-                    // If balls are touching or very close
-                    if (distance < combinedRadius + 2) {
-                        hasContact = true;
-                    }
-                }
-            });
-            
-            // Also check contact with ground
-            if (position.y > groundLevel - ballRadius - 5) {
-                hasContact = true;
-            }
-            
-            // If in contact and moving slowly, apply extra stabilization
-            if (hasContact && speed < 0.03) {
-                Matter.Body.setVelocity(body, {
-                    x: velocity.x * 0.7,
-                    y: velocity.y * 0.7
-                });
-                
-                // If extremely slow and definitely on ground, force to sleep
-                if (speed < 0.01 && position.y > groundLevel - ballRadius - 10) {
-                    Matter.Body.setVelocity(body, { x: 0, y: 0 });
-                    Matter.Body.setAngularVelocity(body, 0);
-                    Matter.Sleeping.set(body, true);
-                }
-            }
-        }
-    }
+
 
     update(deltaTime) {
         // Ensure deltaTime is within Matter.js recommended bounds (≤ 16.667ms for 60fps)
@@ -285,39 +196,13 @@ export class PhysicsEngine {
         // Enforce boundary constraints to prevent wall penetration
         this.enforceBoundaries();
         
-        // Call stabilization on each frame to prevent jittering
+        // Call simplified stabilization to prevent jittering
         this.stabilizeBodies();
-        
-        // Wake up sleeping bodies if they're being affected by new collisions
-        this.manageSleepingBodies();
         
         // Render the scene
         this.renderScene();
     }
     
-    // Manage sleeping bodies to ensure they wake up when needed
-    manageSleepingBodies() {
-        const bodies = Matter.Composite.allBodies(this.world);
-        bodies.forEach(body => {
-            if (!body.isStatic && body.label === 'ball' && body.isSleeping) {
-                // Check if any nearby non-sleeping ball might collide
-                bodies.forEach(otherBody => {
-                    if (otherBody !== body && !otherBody.isStatic && !otherBody.isSleeping) {
-                        const distance = Matter.Vector.magnitude(
-                            Matter.Vector.sub(body.position, otherBody.position)
-                        );
-                        const combinedRadius = (body.circleRadius || 20) + (otherBody.circleRadius || 20);
-                        const speed = Math.sqrt(otherBody.velocity.x ** 2 + otherBody.velocity.y ** 2);
-                        
-                        // Wake up if another ball is approaching and might collide
-                        if (distance < combinedRadius + 50 && speed > 0.5) {
-                            Matter.Sleeping.set(body, false);
-                        }
-                    }
-                });
-            }
-        });
-    }
 
     // Enforce boundaries to prevent balls from escaping through walls
     enforceBoundaries() {

@@ -94,10 +94,10 @@ export class Ball {
     // Release ball from static state (when dropped)
     release() {
         if (this.isCurrentBall) {
+            console.log('Releasing ball from static state');
             Matter.Body.setStatic(this.body, false);
             this.isCurrentBall = false;
-            // Mark when this ball was dropped to prevent immediate sleeping
-            this.body.dropTime = performance.now();
+            console.log('Ball released and should now fall');
         }
     }
 
@@ -123,8 +123,8 @@ export class BallManager {
         this.balls = [];
         this.currentBall = null; // Ball being controlled by player
         this.nextBallSize = this.generateRandomSize();
-        this.spawnTimeoutId = null; // Track timeout for next ball spawn
         this.lastDropTime = 0; // Track when last ball was dropped
+        this.waitingForNext = false; // Simple flag to track if waiting for next ball
     }
 
     generateRandomSize() {
@@ -133,10 +133,8 @@ export class BallManager {
     }
 
     spawnBall() {
-        if (this.currentBall) {
-            return; // Already have a ball being controlled
-        }
-
+        console.log(`Spawning new ball with size ${this.nextBallSize}`);
+        
         const x = 512; // Center of canvas (1024/2)
         const y = 50;  // Near top
         
@@ -146,15 +144,28 @@ export class BallManager {
         // Generate next ball size
         this.nextBallSize = this.generateRandomSize();
         
+        // Clear waiting flag
+        this.waitingForNext = false;
+        
         // Update UI
         this.updateUI();
+        
+        console.log(`Ball spawned successfully. Ready to drop.`);
     }
 
     dropCurrentBall() {
         if (!this.currentBall) {
+            console.log('No current ball to drop');
             return; // No ball to drop
         }
 
+        if (this.waitingForNext) {
+            console.log('Already waiting for next ball, ignoring drop request');
+            return; // Already waiting for next ball
+        }
+
+        console.log('Dropping current ball');
+        
         // Release the ball from static state so gravity affects it
         this.currentBall.release();
         
@@ -164,18 +175,16 @@ export class BallManager {
         // Release the ball from player control
         this.currentBall = null;
         
+        // Set waiting flag
+        this.waitingForNext = true;
+        
         // Update UI to show waiting state
         this.updateUI();
         
-        // Clear any existing spawn timeout to prevent multiple balls
-        if (this.spawnTimeoutId) {
-            clearTimeout(this.spawnTimeoutId);
-        }
-        
         // Schedule next ball spawn after exactly 2 seconds
-        this.spawnTimeoutId = setTimeout(() => {
+        setTimeout(() => {
+            console.log('2 seconds elapsed, spawning next ball');
             this.spawnBall();
-            this.spawnTimeoutId = null;
         }, 2000);
     }
 
@@ -217,6 +226,8 @@ export class BallManager {
         if (ballInfoElement) {
             if (this.currentBall) {
                 ballInfoElement.textContent = `Current Ball: Size ${this.currentBall.size}`;
+            } else if (this.waitingForNext) {
+                ballInfoElement.textContent = `Waiting... Next Ball: Size ${this.nextBallSize}`;
             } else {
                 ballInfoElement.textContent = `Next Ball: Size ${this.nextBallSize}`;
             }
