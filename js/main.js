@@ -81,7 +81,10 @@ class Game {
         // Update physics engine with frame-rate independent timing
         this.physicsEngine.update(this.clock.deltaTime);
         
-        // Update ball manager (cleanup, spawning logic, etc.)
+        // Update ball manager (spawning logic, UI updates, etc.)
+        this.ballManager.update();
+        
+        // Clean up balls that have fallen off screen
         this.ballManager.cleanup();
         
         // Update UI elements if needed

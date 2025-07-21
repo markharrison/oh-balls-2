@@ -81,7 +81,6 @@ body::before {
 #gameCanvas {
     border: 2px solid rgba(100, 181, 246, 0.4);
     border-radius: 12px;
-    background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 50%, #16213e 100%);
     box-shadow: 
         0 10px 40px rgba(13, 71, 161, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.05),

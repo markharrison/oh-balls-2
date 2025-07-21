@@ -10,16 +10,8 @@ export class PhysicsEngine {
         this.render = null;
 
         // Set up physics properties for stable simulation
-        this.engine.world.gravity.y = 0.8; // Realistic gravity
-        this.engine.timing.timeScale = 1; // Normal time scale
-        
-        // Improve stability for complex stacks with many balls
-        this.engine.positionIterations = 10; // Increased for better position resolution
-        this.engine.velocityIterations = 8;  // Increased for better velocity resolution
-        this.engine.constraintIterations = 4; // Increased for better constraint resolution
-        
-        // Enable sleeping for better performance and stability
-        this.engine.enableSleeping = true;
+        this.engine.world.gravity.y = 0.8;
+        this.engine.timing.timeScale = 1;
 
         this.setupBoundaries();
     }
@@ -159,33 +151,6 @@ export class PhysicsEngine {
         ctx.restore();
     }
 
-
-
-    // Simplified stabilization - only for very settled balls
-    stabilizeBodies() {
-        const bodies = Matter.Composite.allBodies(this.world);
-        bodies.forEach(body => {
-            if (!body.isStatic && body.label === 'ball') {
-                const velocity = body.velocity;
-                const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-                
-                // Only stabilize balls that are barely moving and have been settled for a while
-                if (speed < 0.01 && Math.abs(body.angularVelocity) < 0.01) {
-                    // Check if ball is resting on ground or other balls
-                    const groundLevel = 768 - 17; // canvas height - wall thickness
-                    const ballRadius = body.circleRadius || 20;
-                    
-                    if (body.position.y > groundLevel - ballRadius - 5) {
-                        // Ball is on ground and barely moving - safe to stop
-                        Matter.Body.setVelocity(body, { x: 0, y: 0 });
-                        Matter.Body.setAngularVelocity(body, 0);
-                    }
-                }
-            }
-        });
-    }
-
-
     update(deltaTime) {
         // Ensure deltaTime is within Matter.js recommended bounds (≤ 16.667ms for 60fps)
         const clampedDelta = Math.min(Math.max(deltaTime, 8), 16.0); // Keep safely under 16.667ms
@@ -193,70 +158,7 @@ export class PhysicsEngine {
         // Update physics engine with frame-rate independent timing
         Matter.Engine.update(this.engine, clampedDelta);
         
-        // Enforce boundary constraints to prevent wall penetration
-        this.enforceBoundaries();
-        
-        // Call simplified stabilization to prevent jittering
-        this.stabilizeBodies();
-        
         // Render the scene
         this.renderScene();
-    }
-    
-
-    // Enforce boundaries to prevent balls from escaping through walls
-    enforceBoundaries() {
-        const wallThickness = 17;
-        const width = 1024;
-        const height = 768;
-        
-        const bodies = Matter.Composite.allBodies(this.world);
-        bodies.forEach(body => {
-            if (!body.isStatic && body.label === 'ball') {
-                const pos = body.position;
-                const radius = body.circleRadius || 20; // Use actual radius or fallback
-                
-                let corrected = false;
-                let newX = pos.x;
-                let newY = pos.y;
-                
-                // Only correct if significantly outside bounds to avoid micro-corrections
-                const tolerance = 2; // Small tolerance to prevent constant corrections
-                
-                // Left wall boundary
-                if (pos.x - radius < wallThickness - tolerance) {
-                    newX = wallThickness + radius;
-                    corrected = true;
-                }
-                
-                // Right wall boundary  
-                if (pos.x + radius > width - wallThickness + tolerance) {
-                    newX = width - wallThickness - radius;
-                    corrected = true;
-                }
-                
-                // Floor boundary
-                if (pos.y + radius > height - wallThickness + tolerance) {
-                    newY = height - wallThickness - radius;
-                    corrected = true;
-                }
-                
-                // Apply correction if needed, but be gentler
-                if (corrected) {
-                    Matter.Body.setPosition(body, { x: newX, y: newY });
-                    // Reduce velocity more aggressively to prevent energy addition
-                    const vel = body.velocity;
-                    Matter.Body.setVelocity(body, {
-                        x: vel.x * 0.5, // More aggressive velocity reduction
-                        y: vel.y * 0.5
-                    });
-                    
-                    // Force the body to sleep if it was corrected
-                    if (Math.sqrt(vel.x * vel.x + vel.y * vel.y) < 0.1) {
-                        Matter.Sleeping.set(body, true);
-                    }
-                }
-            }
-        });
     }
 }

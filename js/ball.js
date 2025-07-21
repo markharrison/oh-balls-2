@@ -11,20 +11,16 @@ export class Ball {
         // Create Matter.js body for the ball
         this.body = Matter.Bodies.circle(x, y, this.radius, {
             density: this.mass / (Math.PI * this.radius * this.radius), // Density = mass/area
-            friction: 0.4, // Increased friction to help with stability
-            frictionAir: 0.005, // Reduced air resistance for better settling
-            restitution: 0.9, // Increased bounciness for more bouncy ball-to-ball collisions
-            slop: 0.02, // Reduced collision tolerance for more precise physics
+            friction: 0.4,
+            frictionAir: 0.005,
+            restitution: 0.9,
             render: {
                 fillStyle: this.color,
                 strokeStyle: '#ffffff',
                 lineWidth: 3,
                 visible: true
             },
-            label: 'ball',
-            sleepThreshold: 60, // Allow sleeping after 1 second of inactivity
-            sleepTimeScale: 1, // Normal time scale for sleeping
-            sleepSpeedLimit: 0.1 // Speed limit for sleeping
+            label: 'ball'
         });
 
         // Store the radius directly on the body for accurate rendering
@@ -124,7 +120,8 @@ export class BallManager {
         this.currentBall = null; // Ball being controlled by player
         this.nextBallSize = this.generateRandomSize();
         this.lastDropTime = 0; // Track when last ball was dropped
-        this.waitingForNext = false; // Simple flag to track if waiting for next ball
+        this.nextSpawnTime = 0; // When next ball should spawn
+        this.gameState = 'ready'; // 'ready', 'dropping', 'waiting'
     }
 
     generateRandomSize() {
@@ -133,6 +130,18 @@ export class BallManager {
     }
 
     spawnBall() {
+        // Don't spawn if we already have a current ball
+        if (this.currentBall) {
+            console.log('Cannot spawn - current ball already exists');
+            return;
+        }
+        
+        // Don't spawn if we're still waiting
+        if (this.gameState === 'waiting' && performance.now() < this.nextSpawnTime) {
+            console.log('Cannot spawn - still waiting for spawn time');
+            return;
+        }
+        
         console.log(`Spawning new ball with size ${this.nextBallSize}`);
         
         const x = 512; // Center of canvas (1024/2)
@@ -141,11 +150,11 @@ export class BallManager {
         this.currentBall = new Ball(this.physicsEngine, x, y, this.nextBallSize, true);
         this.balls.push(this.currentBall);
         
-        // Generate next ball size
+        // Generate next ball size for UI display
         this.nextBallSize = this.generateRandomSize();
         
-        // Clear waiting flag
-        this.waitingForNext = false;
+        // Set state to ready
+        this.gameState = 'ready';
         
         // Update UI
         this.updateUI();
@@ -156,12 +165,12 @@ export class BallManager {
     dropCurrentBall() {
         if (!this.currentBall) {
             console.log('No current ball to drop');
-            return; // No ball to drop
+            return;
         }
 
-        if (this.waitingForNext) {
-            console.log('Already waiting for next ball, ignoring drop request');
-            return; // Already waiting for next ball
+        if (this.gameState !== 'ready') {
+            console.log('Cannot drop - not in ready state');
+            return;
         }
 
         console.log('Dropping current ball');
@@ -171,21 +180,18 @@ export class BallManager {
         
         // Track when this ball was dropped
         this.lastDropTime = performance.now();
+        this.nextSpawnTime = this.lastDropTime + 2000; // 2 seconds from now
         
         // Release the ball from player control
         this.currentBall = null;
         
-        // Set waiting flag
-        this.waitingForNext = true;
+        // Set state to waiting
+        this.gameState = 'waiting';
         
         // Update UI to show waiting state
         this.updateUI();
         
-        // Schedule next ball spawn after exactly 2 seconds
-        setTimeout(() => {
-            console.log('2 seconds elapsed, spawning next ball');
-            this.spawnBall();
-        }, 2000);
+        console.log('Ball dropped successfully. Next ball in 2 seconds.');
     }
 
     moveCurrentBall(direction) {
@@ -226,11 +232,21 @@ export class BallManager {
         if (ballInfoElement) {
             if (this.currentBall) {
                 ballInfoElement.textContent = `Current Ball: Size ${this.currentBall.size}`;
-            } else if (this.waitingForNext) {
-                ballInfoElement.textContent = `Waiting... Next Ball: Size ${this.nextBallSize}`;
+            } else if (this.gameState === 'waiting') {
+                const timeLeft = Math.max(0, this.nextSpawnTime - performance.now());
+                const secondsLeft = Math.ceil(timeLeft / 1000);
+                ballInfoElement.textContent = `Waiting ${secondsLeft}s... Next Ball: Size ${this.nextBallSize}`;
             } else {
                 ballInfoElement.textContent = `Next Ball: Size ${this.nextBallSize}`;
             }
+        }
+    }
+
+    // Called every frame to check if we should spawn a new ball
+    update() {
+        // Check if we should spawn a new ball
+        if (this.gameState === 'waiting' && !this.currentBall && performance.now() >= this.nextSpawnTime) {
+            this.spawnBall();
         }
     }
 
