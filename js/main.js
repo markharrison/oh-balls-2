@@ -2,6 +2,7 @@
 import { PhysicsEngine } from './physics.js';
 import { BallManager } from './ball.js';
 import { InputHandler } from './input.js';
+import { DiagnosticPanel } from './diagnostics.js';
 
 class Game {
     constructor() {
@@ -12,6 +13,7 @@ class Game {
         this.physicsEngine = new PhysicsEngine(this.canvas);
         this.ballManager = new BallManager(this.physicsEngine);
         this.inputHandler = new InputHandler(this.ballManager);
+        this.diagnostics = new DiagnosticPanel(this);
         
         // Clock for consistent timing
         this.clock = {
@@ -100,6 +102,7 @@ class Game {
     destroy() {
         this.stop();
         this.inputHandler.destroy();
+        this.diagnostics.destroy();
         
         // Clean up all balls
         const balls = this.ballManager.getAllBalls();
@@ -115,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add some debug info to console
     console.log('Oh Balls 2 - Physics Game');
     console.log('Controls: ← → Arrow keys to move, ↓ or Space to drop');
+    console.log('Press D to toggle diagnostic panel for debugging');
     console.log('Access game instance via window.game');
     
     // Initialize the game
