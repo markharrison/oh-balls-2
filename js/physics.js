@@ -217,8 +217,11 @@ export class PhysicsEngine {
     }
 
     update(deltaTime) {
+        // Ensure deltaTime is within reasonable bounds for Matter.js
+        const clampedDelta = Math.min(Math.max(deltaTime, 8), 33); // Between 8ms and 33ms
+        
         // Update physics engine with frame-rate independent timing
-        Matter.Engine.update(this.engine, deltaTime);
+        Matter.Engine.update(this.engine, clampedDelta);
         
         // Enforce boundary constraints to prevent wall penetration
         this.enforceBoundaries();
