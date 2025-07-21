@@ -7,7 +7,6 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.running = false;
-        this.lastTime = 0;
         
         // Initialize core systems
         this.physicsEngine = new PhysicsEngine(this.canvas);
@@ -17,7 +16,6 @@ class Game {
         // Clock for consistent timing
         this.clock = {
             deltaTime: 0,
-            lastTime: 0,
             currentTime: 0
         };
     }
@@ -41,7 +39,6 @@ class Game {
         if (this.running) return;
         
         this.running = true;
-        this.lastTime = performance.now();
         this.gameLoop();
     }
 
@@ -64,9 +61,9 @@ class Game {
     }
 
     updateClock(currentTime) {
-        this.clock.lastTime = this.clock.currentTime;
+        const lastTime = this.clock.currentTime;
         this.clock.currentTime = currentTime;
-        this.clock.deltaTime = this.clock.currentTime - this.clock.lastTime;
+        this.clock.deltaTime = this.clock.currentTime - lastTime;
         
         // Handle first frame or prevent large jumps
         if (this.clock.deltaTime <= 0 || this.clock.deltaTime > 16.0) {
@@ -86,14 +83,6 @@ class Game {
         
         // Clean up balls that have fallen off screen
         this.ballManager.cleanup();
-        
-        // Update UI elements if needed
-        this.updateUI();
-    }
-
-    updateUI() {
-        // Update any dynamic UI elements here
-        // Currently handled by BallManager.updateUI()
     }
 
     // Debug methods

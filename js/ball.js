@@ -79,10 +79,6 @@ export class Ball {
         Matter.Body.setPosition(this.body, { x, y });
     }
 
-    setVelocity(x, y) {
-        Matter.Body.setVelocity(this.body, { x, y });
-    }
-
     applyForce(x, y) {
         Matter.Body.applyForce(this.body, this.body.position, { x, y });
     }

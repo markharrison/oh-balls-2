@@ -86,15 +86,6 @@ export class InputHandler {
         }
     }
 
-    // Method to get current input state
-    getInputState() {
-        return {
-            left: this.keys.left,
-            right: this.keys.right,
-            drop: this.keys.drop
-        };
-    }
-
     // Cleanup method
     destroy() {
         document.removeEventListener('keydown', this.handleKeyDown);
