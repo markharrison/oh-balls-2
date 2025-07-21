@@ -13,10 +13,13 @@ export class PhysicsEngine {
         this.engine.world.gravity.y = 0.8; // Realistic gravity
         this.engine.timing.timeScale = 1; // Normal time scale
         
-        // Improve stability
-        this.engine.positionIterations = 6;
-        this.engine.velocityIterations = 4;
-        this.engine.constraintIterations = 2;
+        // Improve stability for complex stacks with many balls
+        this.engine.positionIterations = 10; // Increased for better position resolution
+        this.engine.velocityIterations = 8;  // Increased for better velocity resolution
+        this.engine.constraintIterations = 4; // Increased for better constraint resolution
+        
+        // Enable sleeping for better performance and stability
+        this.engine.enableSleeping = true;
 
         this.setupBoundaries();
     }
@@ -162,37 +165,95 @@ export class PhysicsEngine {
     stabilizeBodies() {
         const bodies = Matter.Composite.allBodies(this.world);
         bodies.forEach(body => {
-            if (!body.isStatic) {
+            if (!body.isStatic && body.label === 'ball') {
                 const velocity = body.velocity;
                 const angularVelocity = body.angularVelocity;
+                const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
                 
-                // More aggressive stabilization for jitter reduction
-                // Reduce micro-movements that cause visual jittering
-                if (Math.abs(velocity.x) < 0.05 && Math.abs(velocity.y) < 0.05 && 
-                    Math.abs(angularVelocity) < 0.05) {
+                // More aggressive stabilization thresholds
+                const microVelocityThreshold = 0.02; // Reduced from 0.05
+                const microAngularThreshold = 0.02;  // Reduced from 0.05
+                const dampingVelocityThreshold = 0.1; // Reduced from 0.2
+                const dampingAngularThreshold = 0.05; // Reduced from 0.1
+                
+                // Force complete stop for very small movements
+                if (speed < microVelocityThreshold && Math.abs(angularVelocity) < microAngularThreshold) {
                     Matter.Body.setVelocity(body, { x: 0, y: 0 });
                     Matter.Body.setAngularVelocity(body, 0);
+                    
+                    // Force the body to sleep to prevent any micro-movements
+                    Matter.Sleeping.set(body, true);
                 }
-                
-                // Additional micro-velocity damping for stability
-                if (Math.abs(velocity.x) < 0.2 && Math.abs(velocity.y) < 0.2) {
+                // Enhanced micro-velocity damping for near-stationary bodies
+                else if (speed < dampingVelocityThreshold) {
                     Matter.Body.setVelocity(body, {
-                        x: velocity.x * 0.95,
-                        y: velocity.y * 0.95
+                        x: velocity.x * 0.85, // More aggressive damping
+                        y: velocity.y * 0.85
                     });
                 }
                 
-                // Micro angular velocity damping
-                if (Math.abs(angularVelocity) < 0.1) {
-                    Matter.Body.setAngularVelocity(body, angularVelocity * 0.9);
+                // Enhanced micro angular velocity damping
+                if (Math.abs(angularVelocity) < dampingAngularThreshold) {
+                    Matter.Body.setAngularVelocity(body, angularVelocity * 0.8); // More aggressive
                 }
+                
+                // Additional stability check for balls in contact with others
+                this.stabilizeStackedBalls(body);
             }
         });
     }
+    
+    // Additional method to stabilize balls that are in contact (stacked)
+    stabilizeStackedBalls(body) {
+        const position = body.position;
+        const velocity = body.velocity;
+        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+        
+        // If ball is moving very slowly and potentially in a stack
+        if (speed < 0.05) {
+            const bodies = Matter.Composite.allBodies(this.world);
+            let hasContact = false;
+            
+            // Check if this ball is in contact with other balls or ground
+            bodies.forEach(otherBody => {
+                if (otherBody !== body && !otherBody.isStatic) {
+                    const distance = Matter.Vector.magnitude(
+                        Matter.Vector.sub(position, otherBody.position)
+                    );
+                    const combinedRadius = (body.circleRadius || 20) + (otherBody.circleRadius || 20);
+                    
+                    // If balls are touching or very close
+                    if (distance < combinedRadius + 2) {
+                        hasContact = true;
+                    }
+                }
+            });
+            
+            // Also check contact with ground
+            if (position.y > 768 - 17 - (body.circleRadius || 20) - 5) {
+                hasContact = true;
+            }
+            
+            // If in contact and moving slowly, apply extra stabilization
+            if (hasContact && speed < 0.03) {
+                Matter.Body.setVelocity(body, {
+                    x: velocity.x * 0.7,
+                    y: velocity.y * 0.7
+                });
+                
+                // If extremely slow, force to sleep
+                if (speed < 0.01) {
+                    Matter.Body.setVelocity(body, { x: 0, y: 0 });
+                    Matter.Body.setAngularVelocity(body, 0);
+                    Matter.Sleeping.set(body, true);
+                }
+            }
+        }
+    }
 
     update(deltaTime) {
-        // Ensure deltaTime is within reasonable bounds for Matter.js
-        const clampedDelta = Math.min(Math.max(deltaTime, 8), 33); // Between 8ms and 33ms
+        // Ensure deltaTime is within Matter.js recommended bounds (≤ 16.667ms for 60fps)
+        const clampedDelta = Math.min(Math.max(deltaTime, 8), 16.0); // Keep safely under 16.667ms
         
         // Update physics engine with frame-rate independent timing
         Matter.Engine.update(this.engine, clampedDelta);
@@ -200,11 +261,38 @@ export class PhysicsEngine {
         // Enforce boundary constraints to prevent wall penetration
         this.enforceBoundaries();
         
-        // Call stabilization on each frame
+        // Call stabilization on each frame to prevent jittering
         this.stabilizeBodies();
+        
+        // Wake up sleeping bodies if they're being affected by new collisions
+        this.manageSleepingBodies();
         
         // Render the scene
         this.renderScene();
+    }
+    
+    // Manage sleeping bodies to ensure they wake up when needed
+    manageSleepingBodies() {
+        const bodies = Matter.Composite.allBodies(this.world);
+        bodies.forEach(body => {
+            if (!body.isStatic && body.label === 'ball' && body.isSleeping) {
+                // Check if any nearby non-sleeping ball might collide
+                bodies.forEach(otherBody => {
+                    if (otherBody !== body && !otherBody.isStatic && !otherBody.isSleeping) {
+                        const distance = Matter.Vector.magnitude(
+                            Matter.Vector.sub(body.position, otherBody.position)
+                        );
+                        const combinedRadius = (body.circleRadius || 20) + (otherBody.circleRadius || 20);
+                        const speed = Math.sqrt(otherBody.velocity.x ** 2 + otherBody.velocity.y ** 2);
+                        
+                        // Wake up if another ball is approaching and might collide
+                        if (distance < combinedRadius + 50 && speed > 0.5) {
+                            Matter.Sleeping.set(body, false);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     // Enforce boundaries to prevent balls from escaping through walls
@@ -223,33 +311,41 @@ export class PhysicsEngine {
                 let newX = pos.x;
                 let newY = pos.y;
                 
+                // Only correct if significantly outside bounds to avoid micro-corrections
+                const tolerance = 2; // Small tolerance to prevent constant corrections
+                
                 // Left wall boundary
-                if (pos.x - radius < wallThickness) {
+                if (pos.x - radius < wallThickness - tolerance) {
                     newX = wallThickness + radius;
                     corrected = true;
                 }
                 
                 // Right wall boundary  
-                if (pos.x + radius > width - wallThickness) {
+                if (pos.x + radius > width - wallThickness + tolerance) {
                     newX = width - wallThickness - radius;
                     corrected = true;
                 }
                 
                 // Floor boundary
-                if (pos.y + radius > height - wallThickness) {
+                if (pos.y + radius > height - wallThickness + tolerance) {
                     newY = height - wallThickness - radius;
                     corrected = true;
                 }
                 
-                // Apply correction if needed
+                // Apply correction if needed, but be gentler
                 if (corrected) {
                     Matter.Body.setPosition(body, { x: newX, y: newY });
-                    // Reduce velocity to prevent bouncing through walls
+                    // Reduce velocity more aggressively to prevent energy addition
                     const vel = body.velocity;
                     Matter.Body.setVelocity(body, {
-                        x: vel.x * 0.8,
-                        y: vel.y * 0.8
+                        x: vel.x * 0.5, // More aggressive velocity reduction
+                        y: vel.y * 0.5
                     });
+                    
+                    // Force the body to sleep if it was corrected
+                    if (Math.sqrt(vel.x * vel.x + vel.y * vel.y) < 0.1) {
+                        Matter.Sleeping.set(body, true);
+                    }
                 }
             }
         });

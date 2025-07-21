@@ -11,16 +11,20 @@ export class Ball {
         // Create Matter.js body for the ball
         this.body = Matter.Bodies.circle(x, y, this.radius, {
             density: this.mass / (Math.PI * this.radius * this.radius), // Density = mass/area
-            friction: 0.3,
-            frictionAir: 0.01, // Air resistance to help with stability
+            friction: 0.4, // Increased friction to help with stability
+            frictionAir: 0.005, // Reduced air resistance for better settling
             restitution: 0.9, // Increased bounciness for more bouncy ball-to-ball collisions
+            slop: 0.02, // Reduced collision tolerance for more precise physics
             render: {
                 fillStyle: this.color,
                 strokeStyle: '#ffffff',
                 lineWidth: 3,
                 visible: true
             },
-            label: 'ball'
+            label: 'ball',
+            sleepThreshold: 60, // Allow sleeping after 1 second of inactivity
+            sleepTimeScale: 1, // Normal time scale for sleeping
+            sleepSpeedLimit: 0.1 // Speed limit for sleeping
         });
 
         // Store the radius directly on the body for accurate rendering

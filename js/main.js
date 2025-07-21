@@ -69,8 +69,8 @@ class Game {
         this.clock.deltaTime = this.clock.currentTime - this.clock.lastTime;
         
         // Handle first frame or prevent large jumps
-        if (this.clock.deltaTime <= 0 || this.clock.deltaTime > 16.667) {
-            this.clock.deltaTime = 16.667; // Cap at 60fps timing (1000/60 = 16.667ms)
+        if (this.clock.deltaTime <= 0 || this.clock.deltaTime > 16.0) {
+            this.clock.deltaTime = 16.0; // Stay safely under 16.667ms limit
         }
     }
 
