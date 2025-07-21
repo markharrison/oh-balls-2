@@ -94,8 +94,6 @@ export class PhysicsEngine {
         // Get all bodies and render them
         const bodies = Matter.Composite.allBodies(this.world);
         
-        console.log('Rendering', bodies.length, 'bodies'); // Debug log
-        
         bodies.forEach(body => {
             this.renderBody(body);
         });
@@ -105,8 +103,6 @@ export class PhysicsEngine {
         const ctx = this.ctx;
         const position = body.position;
         const angle = body.angle;
-        
-        console.log('Rendering body:', body.label, 'at', position.x, position.y); // Debug log
         
         ctx.save();
         ctx.translate(position.x, position.y);
@@ -133,21 +129,59 @@ export class PhysicsEngine {
             }
         } else {
             // Render circle (ball)
-            // For a circle, the radius is simply half the width (or height) of the bounding box
-            const radius = (body.bounds.max.x - body.bounds.min.x) / 2;
+            // Use the actual physics body radius from the circle shape
+            let radius;
+            if (body.circleRadius !== undefined) {
+                radius = body.circleRadius;
+            } else {
+                // Fallback to bounding box calculation
+                radius = (body.bounds.max.x - body.bounds.min.x) / 2;
+            }
             
-            console.log('Drawing circle with radius:', radius); // Debug log
+            // Check if this ball is touching other balls to adjust stroke
+            const isTouchingOthers = this.isBallTouchingOthers(body);
             
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, 2 * Math.PI);
             ctx.fill();
             
             if (ctx.strokeStyle) {
+                // Reduce stroke width when touching other balls to minimize visual overlap
+                const originalLineWidth = ctx.lineWidth;
+                if (isTouchingOthers) {
+                    ctx.lineWidth = Math.max(1, originalLineWidth * 0.5);
+                }
                 ctx.stroke();
+                ctx.lineWidth = originalLineWidth;
             }
         }
         
         ctx.restore();
+    }
+
+    // Check if a ball is touching other balls
+    isBallTouchingOthers(ball) {
+        if (ball.isStatic || ball.label !== 'ball') return false;
+        
+        const bodies = Matter.Composite.allBodies(this.world);
+        const ballRadius = ball.circleRadius || ((ball.bounds.max.x - ball.bounds.min.x) / 2);
+        
+        for (let other of bodies) {
+            if (other === ball || other.isStatic || other.label !== 'ball') continue;
+            
+            const otherRadius = other.circleRadius || ((other.bounds.max.x - other.bounds.min.x) / 2);
+            const distance = Math.sqrt(
+                Math.pow(ball.position.x - other.position.x, 2) +
+                Math.pow(ball.position.y - other.position.y, 2)
+            );
+            
+            // Check if balls are very close (touching + small margin)
+            if (distance <= ballRadius + otherRadius + 2) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     // Method to ensure bodies come to rest (prevent jittering)
@@ -155,10 +189,28 @@ export class PhysicsEngine {
         const bodies = Matter.Composite.allBodies(this.world);
         bodies.forEach(body => {
             if (!body.isStatic) {
-                // If velocity is very small, set to zero to prevent jitter
-                if (Math.abs(body.velocity.x) < 0.1 && Math.abs(body.velocity.y) < 0.1) {
+                const velocity = body.velocity;
+                const angularVelocity = body.angularVelocity;
+                
+                // More aggressive stabilization for jitter reduction
+                // Reduce micro-movements that cause visual jittering
+                if (Math.abs(velocity.x) < 0.05 && Math.abs(velocity.y) < 0.05 && 
+                    Math.abs(angularVelocity) < 0.05) {
                     Matter.Body.setVelocity(body, { x: 0, y: 0 });
                     Matter.Body.setAngularVelocity(body, 0);
+                }
+                
+                // Additional micro-velocity damping for stability
+                if (Math.abs(velocity.x) < 0.2 && Math.abs(velocity.y) < 0.2) {
+                    Matter.Body.setVelocity(body, {
+                        x: velocity.x * 0.95,
+                        y: velocity.y * 0.95
+                    });
+                }
+                
+                // Micro angular velocity damping
+                if (Math.abs(angularVelocity) < 0.1) {
+                    Matter.Body.setAngularVelocity(body, angularVelocity * 0.9);
                 }
             }
         });
@@ -168,10 +220,61 @@ export class PhysicsEngine {
         // Update physics engine with frame-rate independent timing
         Matter.Engine.update(this.engine, deltaTime);
         
+        // Enforce boundary constraints to prevent wall penetration
+        this.enforceBoundaries();
+        
         // Call stabilization on each frame
         this.stabilizeBodies();
         
         // Render the scene
         this.renderScene();
+    }
+
+    // Enforce boundaries to prevent balls from escaping through walls
+    enforceBoundaries() {
+        const wallThickness = 17;
+        const width = 1024;
+        const height = 768;
+        
+        const bodies = Matter.Composite.allBodies(this.world);
+        bodies.forEach(body => {
+            if (!body.isStatic && body.label === 'ball') {
+                const pos = body.position;
+                const radius = body.circleRadius || 20; // Use actual radius or fallback
+                
+                let corrected = false;
+                let newX = pos.x;
+                let newY = pos.y;
+                
+                // Left wall boundary
+                if (pos.x - radius < wallThickness) {
+                    newX = wallThickness + radius;
+                    corrected = true;
+                }
+                
+                // Right wall boundary  
+                if (pos.x + radius > width - wallThickness) {
+                    newX = width - wallThickness - radius;
+                    corrected = true;
+                }
+                
+                // Floor boundary
+                if (pos.y + radius > height - wallThickness) {
+                    newY = height - wallThickness - radius;
+                    corrected = true;
+                }
+                
+                // Apply correction if needed
+                if (corrected) {
+                    Matter.Body.setPosition(body, { x: newX, y: newY });
+                    // Reduce velocity to prevent bouncing through walls
+                    const vel = body.velocity;
+                    Matter.Body.setVelocity(body, {
+                        x: vel.x * 0.8,
+                        y: vel.y * 0.8
+                    });
+                }
+            }
+        });
     }
 }

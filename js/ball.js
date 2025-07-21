@@ -23,6 +23,9 @@ export class Ball {
             label: 'ball'
         });
 
+        // Store the radius directly on the body for accurate rendering
+        this.body.circleRadius = this.radius;
+
         // If this is the current ball, make it static (not affected by gravity)
         if (this.isCurrentBall) {
             Matter.Body.setStatic(this.body, true);
@@ -101,9 +104,10 @@ export class Ball {
         const velocity = this.body.velocity;
         const angularVelocity = this.body.angularVelocity;
         
-        return Math.abs(velocity.x) < 0.1 && 
-               Math.abs(velocity.y) < 0.1 && 
-               Math.abs(angularVelocity) < 0.1;
+        // More strict at-rest detection to ensure better stability
+        return Math.abs(velocity.x) < 0.05 && 
+               Math.abs(velocity.y) < 0.05 && 
+               Math.abs(angularVelocity) < 0.05;
     }
 }
 
