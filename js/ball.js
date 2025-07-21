@@ -13,7 +13,7 @@ export class Ball {
             density: this.mass / (Math.PI * this.radius * this.radius), // Density = mass/area
             friction: 0.4,
             frictionAir: 0.005,
-            restitution: 0.9,
+            restitution: 0.7, // Reduced from 0.9 to 0.7 to prevent energy accumulation
             render: {
                 fillStyle: this.color,
                 strokeStyle: '#ffffff',
@@ -107,6 +107,7 @@ export class BallManager {
         this.lastDropTime = 0; // Track when last ball was dropped
         this.nextSpawnTime = 0; // When next ball should spawn
         this.gameState = 'ready'; // 'ready', 'dropping', 'waiting'
+        this.offScreenBalls = new Map(); // Track balls that went off-screen with timestamps
     }
 
     generateRandomSize() {
@@ -240,13 +241,46 @@ export class BallManager {
     }
 
     cleanup() {
-        // Remove balls that have fallen off screen or other cleanup
+        const now = performance.now();
+        const gracePeriod = 3000; // 3 seconds grace period for off-screen balls
+        const canvasWidth = 1024;
+        const canvasHeight = 768;
+        const maxOffScreenDistance = 200; // Allow balls to go this far off-screen before removal
+        
+        // Remove balls that have been off-screen too long or are too far away
         this.balls = this.balls.filter(ball => {
-            if (ball.getPosition().y > 800) { // Below canvas
-                ball.destroy();
-                return false;
+            const pos = ball.getPosition();
+            const isOffScreen = pos.y > canvasHeight + maxOffScreenDistance || 
+                               pos.x < -maxOffScreenDistance || 
+                               pos.x > canvasWidth + maxOffScreenDistance ||
+                               pos.y < -maxOffScreenDistance;
+            
+            if (isOffScreen) {
+                // Track when this ball first went off-screen
+                if (!this.offScreenBalls.has(ball)) {
+                    this.offScreenBalls.set(ball, now);
+                    console.log(`Ball went off-screen at (${pos.x.toFixed(0)}, ${pos.y.toFixed(0)}), starting grace period`);
+                    return true; // Keep the ball for now
+                }
+                
+                // Check if grace period has expired
+                const offScreenTime = now - this.offScreenBalls.get(ball);
+                if (offScreenTime > gracePeriod) {
+                    console.log(`Ball removed after ${(offScreenTime/1000).toFixed(1)}s off-screen at (${pos.x.toFixed(0)}, ${pos.y.toFixed(0)})`);
+                    this.offScreenBalls.delete(ball);
+                    ball.destroy();
+                    return false;
+                }
+                
+                return true; // Still within grace period
+            } else {
+                // Ball is back on screen, remove from off-screen tracking
+                if (this.offScreenBalls.has(ball)) {
+                    console.log(`Ball returned to screen at (${pos.x.toFixed(0)}, ${pos.y.toFixed(0)})`);
+                    this.offScreenBalls.delete(ball);
+                }
+                return true;
             }
-            return true;
         });
     }
 }

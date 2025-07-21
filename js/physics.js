@@ -30,7 +30,7 @@ export class PhysicsEngine {
                 lineWidth: 3
             },
             friction: 0.3,
-            restitution: 1.0,
+            restitution: 0.7, // Reduced from 1.0 to 0.7 to prevent energy accumulation
             label: 'ground'
         });
 
@@ -42,7 +42,7 @@ export class PhysicsEngine {
                 lineWidth: 3
             },
             friction: 0.3,
-            restitution: 1.0,
+            restitution: 0.7, // Reduced from 1.0 to 0.7 to prevent energy accumulation
             label: 'leftWall'
         });
 
@@ -54,7 +54,7 @@ export class PhysicsEngine {
                 lineWidth: 3
             },
             friction: 0.3,
-            restitution: 1.0,
+            restitution: 0.7, // Reduced from 1.0 to 0.7 to prevent energy accumulation
             label: 'rightWall'
         });
 
@@ -158,7 +158,40 @@ export class PhysicsEngine {
         // Update physics engine with frame-rate independent timing
         Matter.Engine.update(this.engine, clampedDelta);
         
+        // Apply velocity clamping to prevent runaway speeds that cause ball disappearance
+        this.clampVelocities();
+        
         // Render the scene
         this.renderScene();
+    }
+
+    clampVelocities() {
+        // Maximum velocity to prevent balls from moving so fast they disappear
+        const maxVelocity = 30; // Reduced from unlimited to prevent disappearing balls
+        const maxVelocitySquared = maxVelocity * maxVelocity;
+        
+        const bodies = Matter.Composite.allBodies(this.world);
+        
+        bodies.forEach(body => {
+            // Only clamp ball velocities, not static walls
+            if (body.label === 'ball' && !body.isStatic) {
+                const velocity = body.velocity;
+                const velocityMagnitudeSquared = velocity.x * velocity.x + velocity.y * velocity.y;
+                
+                // If velocity exceeds maximum, scale it down
+                if (velocityMagnitudeSquared > maxVelocitySquared) {
+                    const velocityMagnitude = Math.sqrt(velocityMagnitudeSquared);
+                    const scale = maxVelocity / velocityMagnitude;
+                    
+                    // Scale down velocity to maximum allowed
+                    Matter.Body.setVelocity(body, {
+                        x: velocity.x * scale,
+                        y: velocity.y * scale
+                    });
+                    
+                    console.warn(`Ball velocity clamped from ${velocityMagnitude.toFixed(1)} to ${maxVelocity}`);
+                }
+            }
+        });
     }
 }

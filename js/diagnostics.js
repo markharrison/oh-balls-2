@@ -7,9 +7,12 @@ export class DiagnosticPanel {
         this.collisionEvents = [];
         this.maxCollisionEvents = 50; // Keep last 50 collision events
         this.ballTrackingData = new Map(); // Track ball lifecycle data
+        this.velocityClampEvents = []; // Track velocity clamping events
+        this.maxVelocityEvents = 20; // Keep last 20 velocity clamp events
         
         this.createPanel();
         this.setupCollisionTracking();
+        this.setupVelocityTracking();
         this.setupKeyboardControls();
     }
 
@@ -71,6 +74,27 @@ export class DiagnosticPanel {
                 }
             });
         });
+    }
+
+    setupVelocityTracking() {
+        // Override console.warn to capture velocity clamping events
+        const originalWarn = console.warn;
+        console.warn = (...args) => {
+            const message = args.join(' ');
+            if (message.includes('Ball velocity clamped')) {
+                this.velocityClampEvents.unshift({
+                    timestamp: performance.now(),
+                    message: message
+                });
+                
+                if (this.velocityClampEvents.length > this.maxVelocityEvents) {
+                    this.velocityClampEvents.pop();
+                }
+            }
+            
+            // Call original warn
+            originalWarn.apply(console, args);
+        };
     }
 
     setupKeyboardControls() {
@@ -141,6 +165,11 @@ export class DiagnosticPanel {
         const criticalEvents = this.collisionEvents
             .filter(c => performance.now() - c.timestamp < 60000 && c.ballSpeed > 25)
             .slice(0, 5);
+            
+        // Recent velocity clamp events
+        const recentVelocityClamps = this.velocityClampEvents
+            .filter(e => performance.now() - e.timestamp < 30000)
+            .slice(0, 10);
 
         content.innerHTML = `
             <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
@@ -166,6 +195,9 @@ export class DiagnosticPanel {
                 </span><br>
                 <span style="color: ${criticalEvents.length > 0 ? '#ff0000' : '#44ff44'}">
                     Critical Events: ${criticalEvents.length}
+                </span><br>
+                <span style="color: ${recentVelocityClamps.length > 0 ? '#ff8844' : '#44ff44'}">
+                    Velocity Clamps: ${recentVelocityClamps.length}
                 </span>
             </div>
 
@@ -210,10 +242,22 @@ export class DiagnosticPanel {
                   `).join('')}
             </div>
 
+            <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
+                <strong>⚠️ Velocity Clamp Events (30s)</strong><br>
+                ${recentVelocityClamps.length === 0 ? 'No velocity clamping needed' :
+                  recentVelocityClamps.map(event => `
+                    <div style="font-size: 11px; margin-bottom: 3px; color: #ff8844;">
+                      ${((performance.now() - event.timestamp) / 1000).toFixed(1)}s ago:<br>
+                      ${event.message}
+                    </div>
+                  `).join('')}
+            </div>
+
             <div style="font-size: 10px; color: #888888;">
                 Press 'D' to toggle this panel<br>
                 Critical events (speed >25) kept for 60s | High impacts (speed >15) kept for 30s<br>
-                Monitoring for balls disappearing due to high velocity
+                Velocity automatically clamped at 30 to prevent ball disappearance<br>
+                Restitution reduced to 0.7 to prevent energy accumulation | 3s grace period for off-screen balls
             </div>
         `;
     }
