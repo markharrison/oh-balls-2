@@ -100,17 +100,6 @@ export class Ball {
     destroy() {
         this.physicsEngine.removeBody(this.body);
     }
-
-    // Check if ball is at rest (for determining when to spawn next ball)
-    isAtRest() {
-        const velocity = this.body.velocity;
-        const angularVelocity = this.body.angularVelocity;
-        
-        // More strict at-rest detection to ensure better stability
-        return Math.abs(velocity.x) < 0.05 && 
-               Math.abs(velocity.y) < 0.05 && 
-               Math.abs(angularVelocity) < 0.05;
-    }
 }
 
 export class BallManager {
