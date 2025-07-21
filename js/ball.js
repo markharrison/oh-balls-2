@@ -150,30 +150,10 @@ export class BallManager {
             // Release the ball from player control
             this.currentBall = null;
             
-            // Schedule next ball spawn after current ball settles
+            // Schedule next ball spawn after exactly 2 seconds
             setTimeout(() => {
-                this.checkForNextSpawn();
+                this.spawnBall();
             }, 2000);
-        }
-    }
-
-    checkForNextSpawn() {
-        // Check if all balls are at rest
-        let allAtRest = true;
-        for (let ball of this.balls) {
-            if (!ball.isAtRest()) {
-                allAtRest = false;
-                break;
-            }
-        }
-
-        if (allAtRest && !this.currentBall) {
-            this.spawnBall();
-        } else {
-            // Check again in a bit
-            setTimeout(() => {
-                this.checkForNextSpawn();
-            }, 500);
         }
     }
 
