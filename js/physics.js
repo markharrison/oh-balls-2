@@ -215,6 +215,10 @@ export class PhysicsEngine {
                 // If velocity is very small, set to zero to prevent micro-oscillations
                 if (velocityMagnitudeSquared > 0 && velocityMagnitudeSquared < restThresholdSquared) {
                     Matter.Body.setVelocity(body, { x: 0, y: 0 });
+                    // Also set angular velocity to zero to stop rotation
+                    Matter.Body.setAngularVelocity(body, 0);
+                    // Force the body to sleep to prevent it from being woken up by tiny forces
+                    Matter.Sleeping.set(body, true);
                     // Only log this occasionally to avoid spam
                     if (Math.random() < 0.01) { // Log ~1% of rest dampening events
                         console.log(`Ball velocity set to rest (was ${Math.sqrt(velocityMagnitudeSquared).toFixed(4)})`);
