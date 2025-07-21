@@ -130,59 +130,33 @@ export class PhysicsEngine {
         } else {
             // Render circle (ball)
             // Use the actual physics body radius from the circle shape
-            let radius;
+            let physicsRadius;
             if (body.circleRadius !== undefined) {
-                radius = body.circleRadius;
+                physicsRadius = body.circleRadius;
             } else {
                 // Fallback to bounding box calculation
-                radius = (body.bounds.max.x - body.bounds.min.x) / 2;
+                physicsRadius = (body.bounds.max.x - body.bounds.min.x) / 2;
             }
             
-            // Check if this ball is touching other balls to adjust stroke
-            const isTouchingOthers = this.isBallTouchingOthers(body);
+            // Adjust rendering radius so stroke doesn't extend beyond physics boundary
+            const strokeWidth = ctx.lineWidth || 0;
+            const renderRadius = physicsRadius - strokeWidth / 2;
             
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-            ctx.fill();
-            
-            if (ctx.strokeStyle) {
-                // Reduce stroke width when touching other balls to minimize visual overlap
-                const originalLineWidth = ctx.lineWidth;
-                if (isTouchingOthers) {
-                    ctx.lineWidth = Math.max(1, originalLineWidth * 0.5);
+            if (renderRadius > 0) {
+                ctx.beginPath();
+                ctx.arc(0, 0, renderRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                if (ctx.strokeStyle && strokeWidth > 0) {
+                    ctx.stroke();
                 }
-                ctx.stroke();
-                ctx.lineWidth = originalLineWidth;
             }
         }
         
         ctx.restore();
     }
 
-    // Check if a ball is touching other balls
-    isBallTouchingOthers(ball) {
-        if (ball.isStatic || ball.label !== 'ball') return false;
-        
-        const bodies = Matter.Composite.allBodies(this.world);
-        const ballRadius = ball.circleRadius || ((ball.bounds.max.x - ball.bounds.min.x) / 2);
-        
-        for (let other of bodies) {
-            if (other === ball || other.isStatic || other.label !== 'ball') continue;
-            
-            const otherRadius = other.circleRadius || ((other.bounds.max.x - other.bounds.min.x) / 2);
-            const distance = Math.sqrt(
-                Math.pow(ball.position.x - other.position.x, 2) +
-                Math.pow(ball.position.y - other.position.y, 2)
-            );
-            
-            // Check if balls are very close (touching + small margin)
-            if (distance <= ballRadius + otherRadius + 2) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
+
 
     // Method to ensure bodies come to rest (prevent jittering)
     stabilizeBodies() {
