@@ -7,6 +7,11 @@ export class InputHandler {
             right: false,
             drop: false
         };
+        
+        // Track key press state to prevent key repeat issues
+        this.keyPressed = {
+            drop: false
+        };
 
         this.setupEventListeners();
     }
@@ -40,7 +45,11 @@ export class InputHandler {
             case 'ArrowDown':
             case 'Space':
                 this.keys.drop = true;
-                this.dropBall();
+                // Only drop if this is a new key press (not a repeat)
+                if (!this.keyPressed.drop) {
+                    this.keyPressed.drop = true;
+                    this.dropBall();
+                }
                 break;
         }
     }
@@ -56,11 +65,13 @@ export class InputHandler {
             case 'ArrowDown':
             case 'Space':
                 this.keys.drop = false;
+                this.keyPressed.drop = false; // Reset key press state
                 break;
         }
     }
 
     dropBall() {
+        console.log('Drop ball requested');
         // Drop the current ball
         this.ballManager.dropCurrentBall();
     }
