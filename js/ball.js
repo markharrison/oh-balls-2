@@ -41,8 +41,10 @@ export class Ball {
     }
 
     calculateMass(size) {
-        // Mass proportional to size - cubic relationship for realistic physics
-        return size * size * size * 0.1;
+        // Mass proportional to size - reduced scaling to prevent extreme momentum transfer
+        // Changed from cubic (size^3) to linear scaling to reduce mass imbalance
+        // Size 1: 1.0, Size 5: 5.0, Size 15: 15.0 (instead of 1, 125, 3375)
+        return size * 1.0;
     }
 
     getColorForSize(size) {

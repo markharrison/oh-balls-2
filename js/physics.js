@@ -14,6 +14,36 @@ export class PhysicsEngine {
         this.engine.timing.timeScale = 1;
 
         this.setupBoundaries();
+        this.setupCollisionDampening();
+    }
+
+    setupCollisionDampening() {
+        // Add collision event handling for mass-imbalanced collisions
+        Matter.Events.on(this.engine, 'afterUpdate', () => {
+            this.handleMassImbalancedCollisions();
+        });
+    }
+
+    handleMassImbalancedCollisions() {
+        // Apply additional dampening to balls that have extreme velocity due to mass imbalance
+        const bodies = Matter.Composite.allBodies(this.world);
+        
+        bodies.forEach(body => {
+            if (body.label === 'ball' && !body.isStatic) {
+                const velocity = body.velocity;
+                const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+                
+                // If a ball is moving very fast, apply additional dampening
+                // This helps prevent small balls from being launched into orbit by large balls
+                if (speed > 15) {
+                    const dampeningFactor = 0.9; // Reduce velocity by 10%
+                    Matter.Body.setVelocity(body, {
+                        x: velocity.x * dampeningFactor,
+                        y: velocity.y * dampeningFactor
+                    });
+                }
+            }
+        });
     }
 
     setupBoundaries() {
@@ -167,7 +197,7 @@ export class PhysicsEngine {
 
     clampVelocities() {
         // Maximum velocity to prevent balls from moving so fast they disappear
-        const maxVelocity = 30; // Reduced from unlimited to prevent disappearing balls
+        const maxVelocity = 20; // Reduced from 30 to 20 to better contain small balls
         const maxVelocitySquared = maxVelocity * maxVelocity;
         
         const bodies = Matter.Composite.allBodies(this.world);

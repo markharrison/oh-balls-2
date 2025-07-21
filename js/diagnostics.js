@@ -136,13 +136,15 @@ export class DiagnosticPanel {
             const velocity = ball.body.velocity;
             const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
             const position = ball.getPosition();
+            const mass = ball.body.mass;
             
             // Track if this ball has extreme velocity
-            const isHighVelocity = speed > 20; // Threshold for concerning velocity
+            const isHighVelocity = speed > 15; // Reduced threshold from 20 to 15
             const isOffScreen = position.x < 0 || position.x > 1024 || position.y < 0 || position.y > 800;
             
             return {
                 size: ball.size,
+                mass,
                 position,
                 velocity,
                 speed,
@@ -207,7 +209,7 @@ export class DiagnosticPanel {
                   ballData.map((ball, i) => `
                     <div style="margin-bottom: 5px; ${ball.isHighVelocity ? 'color: #ff4444' : ''}">
                       Ball ${i + 1} ${ball.isCurrentBall ? '(CURRENT)' : ''}<br>
-                      • Size: ${ball.size} | Speed: ${ball.speed.toFixed(1)}<br>
+                      • Size: ${ball.size} | Mass: ${ball.mass.toFixed(1)} | Speed: ${ball.speed.toFixed(1)}<br>
                       • Pos: (${ball.position.x.toFixed(0)}, ${ball.position.y.toFixed(0)})<br>
                       • Vel: (${ball.velocity.x.toFixed(3)}, ${ball.velocity.y.toFixed(3)})
                       ${ball.isHighVelocity ? ' ⚠️ HIGH SPEED' : ''}
@@ -256,8 +258,9 @@ export class DiagnosticPanel {
             <div style="font-size: 10px; color: #888888;">
                 Press 'D' to toggle this panel<br>
                 Critical events (speed >25) kept for 60s | High impacts (speed >15) kept for 30s<br>
-                Velocity automatically clamped at 30 to prevent ball disappearance<br>
-                Restitution reduced to 0.7 to prevent energy accumulation | 3s grace period for off-screen balls
+                Velocity automatically clamped at 20 to prevent ball disappearance<br>
+                Mass scaling: linear (not cubic) to reduce collision imbalance | Restitution: 0.7<br>
+                Auto-dampening applied to speeds >15 | 3s grace period for off-screen balls
             </div>
         `;
     }
