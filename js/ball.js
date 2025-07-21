@@ -162,6 +162,9 @@ export class BallManager {
         // Release the ball from player control
         this.currentBall = null;
         
+        // Update UI to show waiting state
+        this.updateUI();
+        
         // Clear any existing spawn timeout to prevent multiple balls
         if (this.spawnTimeoutId) {
             clearTimeout(this.spawnTimeoutId);
@@ -210,7 +213,11 @@ export class BallManager {
     updateUI() {
         const ballInfoElement = document.getElementById('currentBallSize');
         if (ballInfoElement) {
-            ballInfoElement.textContent = `Next Ball: Size ${this.nextBallSize}`;
+            if (this.currentBall) {
+                ballInfoElement.textContent = `Current Ball: Size ${this.currentBall.size}`;
+            } else {
+                ballInfoElement.textContent = `Next Ball: Size ${this.nextBallSize}`;
+            }
         }
     }
 
