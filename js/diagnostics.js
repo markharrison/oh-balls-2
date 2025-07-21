@@ -26,7 +26,7 @@ export class DiagnosticPanel {
             position: fixed;
             top: 10px;
             right: 10px;
-            width: 350px;
+            width: 450px;
             height: 500px;
             background: rgba(0, 0, 0, 0.9);
             color: #00ff00;
@@ -236,13 +236,8 @@ export class DiagnosticPanel {
                 <strong>Ball Details</strong><br>
                 ${ballData.length === 0 ? 'No balls in scene' : 
                   ballData.map((ball, i) => `
-                    <div style="margin-bottom: 5px; ${ball.isHighVelocity ? 'color: #ff4444' : ''}">
-                      Ball ${i + 1} ${ball.isCurrentBall ? '(CURRENT)' : ''}<br>
-                      • Size: ${ball.size} | Mass: ${ball.mass.toFixed(1)} | Speed: ${ball.speed.toFixed(1)}<br>
-                      • Pos: (${ball.position.x.toFixed(0)}, ${ball.position.y.toFixed(0)})<br>
-                      • Vel: (${ball.velocity.x.toFixed(3)}, ${ball.velocity.y.toFixed(3)})
-                      ${ball.isHighVelocity ? ' ⚠️ HIGH SPEED' : ''}
-                      ${ball.isOffScreen ? ' 🔴 OFF-SCREEN' : ''}
+                    <div style="margin-bottom: 2px; font-size: 11px; ${ball.isHighVelocity ? 'color: #ff4444' : ''}">
+                      Ball ${i + 1}${ball.isCurrentBall ? ' (CURRENT)' : ''}: Size ${ball.size} | Mass ${ball.mass.toFixed(1)} | Speed ${ball.speed.toFixed(1)} | Pos (${ball.position.x.toFixed(0)},${ball.position.y.toFixed(0)}) | Vel (${ball.velocity.x.toFixed(3)},${ball.velocity.y.toFixed(3)})${ball.isHighVelocity ? ' ⚠️ HIGH SPEED' : ''}${ball.isOffScreen ? ' 🔴 OFF-SCREEN' : ''}
                     </div>
                   `).join('')}
             </div>
