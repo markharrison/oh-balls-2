@@ -12,12 +12,6 @@ export class PhysicsEngine {
         // Set up physics properties for stable simulation
         this.engine.world.gravity.y = 0.8;
         this.engine.timing.timeScale = 1;
-        
-        // Enhanced physics settings for stability and collision accuracy
-        this.engine.velocityIterations = 8; // More iterations for better collision resolution
-        this.engine.positionIterations = 6; // Better position solving
-        this.engine.enableSleeping = true; // Enable sleeping for better performance
-        this.engine.constraintIterations = 4; // Better constraint resolution
 
         this.setupBoundaries();
     }
@@ -164,110 +158,7 @@ export class PhysicsEngine {
         // Update physics engine with frame-rate independent timing
         Matter.Engine.update(this.engine, clampedDelta);
         
-        // Apply physics stabilization to prevent tunneling and jittering
-        this.stabilizePhysics();
-        
         // Render the scene
         this.renderScene();
-    }
-
-    stabilizePhysics() {
-        const bodies = Matter.Composite.allBodies(this.world);
-        const maxVelocity = 15; // Maximum velocity to prevent tunneling
-        const sleepThreshold = 0.1; // Velocity threshold for sleep
-        const positionThreshold = 0.05; // Position stability threshold
-        
-        bodies.forEach(body => {
-            // Skip static bodies (walls, ground)
-            if (body.isStatic) return;
-            
-            // Prevent tunneling: Limit maximum velocity
-            const velocity = body.velocity;
-            const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-            
-            if (speed > maxVelocity) {
-                const scale = maxVelocity / speed;
-                Matter.Body.setVelocity(body, {
-                    x: velocity.x * scale,
-                    y: velocity.y * scale
-                });
-            }
-            
-            // Enhanced jitter elimination
-            const angularSpeed = Math.abs(body.angularVelocity);
-            
-            // More aggressive sleep conditions
-            if (speed < sleepThreshold && angularSpeed < 0.01) {
-                // Check for micro-movements by comparing position stability
-                if (!body._lastPosition) {
-                    body._lastPosition = { x: body.position.x, y: body.position.y };
-                    body._positionStableFrames = 0;
-                } else {
-                    const positionDelta = Math.sqrt(
-                        Math.pow(body.position.x - body._lastPosition.x, 2) +
-                        Math.pow(body.position.y - body._lastPosition.y, 2)
-                    );
-                    
-                    if (positionDelta < positionThreshold) {
-                        body._positionStableFrames++;
-                        
-                        // If position stable for multiple frames, force sleep
-                        if (body._positionStableFrames > 10) {
-                            Matter.Sleeping.set(body, true);
-                            Matter.Body.setVelocity(body, { x: 0, y: 0 });
-                            Matter.Body.setAngularVelocity(body, 0);
-                        }
-                    } else {
-                        body._positionStableFrames = 0;
-                    }
-                    
-                    body._lastPosition = { x: body.position.x, y: body.position.y };
-                }
-            } else {
-                // Reset stability tracking if moving significantly
-                body._positionStableFrames = 0;
-            }
-            
-            // Boundary enforcement to catch any tunneling attempts
-            this.enforceBoundaries(body);
-        });
-    }
-
-    enforceBoundaries(body) {
-        const wallThickness = 17;
-        const width = 1024;
-        const height = 768;
-        const radius = body.circleRadius || (body.bounds.max.x - body.bounds.min.x) / 2;
-        
-        let position = body.position;
-        let corrected = false;
-        
-        // Left wall
-        if (position.x - radius < wallThickness) {
-            position.x = wallThickness + radius;
-            corrected = true;
-        }
-        
-        // Right wall  
-        if (position.x + radius > width - wallThickness) {
-            position.x = width - wallThickness - radius;
-            corrected = true;
-        }
-        
-        // Ground
-        if (position.y + radius > height - wallThickness) {
-            position.y = height - wallThickness - radius;
-            corrected = true;
-        }
-        
-        // If position was corrected, update body and dampen velocity
-        if (corrected) {
-            Matter.Body.setPosition(body, position);
-            // Significantly reduce velocity to prevent bouncing back out
-            Matter.Body.setVelocity(body, {
-                x: body.velocity.x * 0.5,
-                y: body.velocity.y * 0.5
-            });
-        }
     }
 }
