@@ -132,9 +132,14 @@ export class DiagnosticPanel {
         const highVelocityBalls = ballData.filter(b => b.isHighVelocity);
         const offScreenBalls = ballData.filter(b => b.isOffScreen);
         
-        // Recent high-impact collisions
+        // Recent high-impact collisions (extended time window)
         const recentHighImpacts = this.collisionEvents
-            .filter(c => performance.now() - c.timestamp < 5000 && c.ballSpeed > 15)
+            .filter(c => performance.now() - c.timestamp < 30000 && c.ballSpeed > 15)
+            .slice(0, 10);
+            
+        // Critical events (very high speed or potential disappearing balls)
+        const criticalEvents = this.collisionEvents
+            .filter(c => performance.now() - c.timestamp < 60000 && c.ballSpeed > 25)
             .slice(0, 5);
 
         content.innerHTML = `
@@ -158,6 +163,9 @@ export class DiagnosticPanel {
                 </span><br>
                 <span style="color: ${recentHighImpacts.length > 0 ? '#ff8844' : '#44ff44'}">
                     Recent High Impacts: ${recentHighImpacts.length}
+                </span><br>
+                <span style="color: ${criticalEvents.length > 0 ? '#ff0000' : '#44ff44'}">
+                    Critical Events: ${criticalEvents.length}
                 </span>
             </div>
 
@@ -169,7 +177,7 @@ export class DiagnosticPanel {
                       Ball ${i + 1} ${ball.isCurrentBall ? '(CURRENT)' : ''}<br>
                       • Size: ${ball.size} | Speed: ${ball.speed.toFixed(1)}<br>
                       • Pos: (${ball.position.x.toFixed(0)}, ${ball.position.y.toFixed(0)})<br>
-                      • Vel: (${ball.velocity.x.toFixed(1)}, ${ball.velocity.y.toFixed(1)})
+                      • Vel: (${ball.velocity.x.toFixed(3)}, ${ball.velocity.y.toFixed(3)})
                       ${ball.isHighVelocity ? ' ⚠️ HIGH SPEED' : ''}
                       ${ball.isOffScreen ? ' 🔴 OFF-SCREEN' : ''}
                     </div>
@@ -177,19 +185,34 @@ export class DiagnosticPanel {
             </div>
 
             <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                <strong>Recent High-Impact Collisions</strong><br>
-                ${recentHighImpacts.length === 0 ? 'None in last 5 seconds' :
+                <strong>🚨 Critical Events (60s)</strong><br>
+                ${criticalEvents.length === 0 ? 'No critical high-speed events' :
+                  criticalEvents.map(collision => `
+                    <div style="font-size: 11px; margin-bottom: 3px; color: #ff4444;">
+                      ${((performance.now() - collision.timestamp) / 1000).toFixed(1)}s ago:<br>
+                      CRITICAL Speed: ${collision.ballSpeed.toFixed(3)} | vs ${collision.otherType}<br>
+                      Pos: (${collision.ballPosition.x.toFixed(0)}, ${collision.ballPosition.y.toFixed(0)})<br>
+                      Vel: (${collision.ballVelocity.x.toFixed(3)}, ${collision.ballVelocity.y.toFixed(3)})
+                    </div>
+                  `).join('')}
+            </div>
+
+            <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
+                <strong>Recent High-Impact Collisions (30s)</strong><br>
+                ${recentHighImpacts.length === 0 ? 'None in last 30 seconds' :
                   recentHighImpacts.map(collision => `
                     <div style="font-size: 11px; margin-bottom: 3px;">
                       ${((performance.now() - collision.timestamp) / 1000).toFixed(1)}s ago:<br>
-                      Speed: ${collision.ballSpeed.toFixed(1)} | vs ${collision.otherType}<br>
-                      Pos: (${collision.ballPosition.x.toFixed(0)}, ${collision.ballPosition.y.toFixed(0)})
+                      Speed: ${collision.ballSpeed.toFixed(3)} | vs ${collision.otherType}<br>
+                      Pos: (${collision.ballPosition.x.toFixed(0)}, ${collision.ballPosition.y.toFixed(0)})<br>
+                      Vel: (${collision.ballVelocity.x.toFixed(3)}, ${collision.ballVelocity.y.toFixed(3)})
                     </div>
                   `).join('')}
             </div>
 
             <div style="font-size: 10px; color: #888888;">
                 Press 'D' to toggle this panel<br>
+                Critical events (speed >25) kept for 60s | High impacts (speed >15) kept for 30s<br>
                 Monitoring for balls disappearing due to high velocity
             </div>
         `;
