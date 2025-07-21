@@ -96,6 +96,8 @@ export class Ball {
         if (this.isCurrentBall) {
             Matter.Body.setStatic(this.body, false);
             this.isCurrentBall = false;
+            // Mark when this ball was dropped to prevent immediate sleeping
+            this.body.dropTime = performance.now();
         }
     }
 

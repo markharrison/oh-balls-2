@@ -163,6 +163,7 @@ export class PhysicsEngine {
 
     // Method to ensure bodies come to rest (prevent jittering)
     stabilizeBodies() {
+        const currentTime = performance.now();
         const bodies = Matter.Composite.allBodies(this.world);
         bodies.forEach(body => {
             if (!body.isStatic && body.label === 'ball') {
@@ -170,35 +171,53 @@ export class PhysicsEngine {
                 const angularVelocity = body.angularVelocity;
                 const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
                 
-                // More aggressive stabilization thresholds
-                const microVelocityThreshold = 0.02; // Reduced from 0.05
-                const microAngularThreshold = 0.02;  // Reduced from 0.05
-                const dampingVelocityThreshold = 0.1; // Reduced from 0.2
-                const dampingAngularThreshold = 0.05; // Reduced from 0.1
+                // Check if this ball was dropped recently
+                const timeSinceDrop = body.dropTime ? currentTime - body.dropTime : Infinity;
                 
-                // Force complete stop for very small movements
-                if (speed < microVelocityThreshold && Math.abs(angularVelocity) < microAngularThreshold) {
-                    Matter.Body.setVelocity(body, { x: 0, y: 0 });
-                    Matter.Body.setAngularVelocity(body, 0);
+                // Don't stabilize balls that were dropped recently (within 3 seconds)
+                if (timeSinceDrop < 3000) {
+                    return; // Skip stabilization for recently dropped balls
+                }
+                
+                // Only apply stabilization to balls that are actually settling, not freshly dropped balls
+                const microVelocityThreshold = 0.02;
+                const microAngularThreshold = 0.02;
+                const dampingVelocityThreshold = 0.1;
+                const dampingAngularThreshold = 0.05;
+                
+                // Don't force sleep balls that are above ground level (they should fall)
+                const groundLevel = 768 - 17; // canvas height - wall thickness
+                const ballRadius = body.circleRadius || 20;
+                const isAboveGround = body.position.y < groundLevel - ballRadius - 50; // 50px buffer
+                
+                // Only apply aggressive stabilization if ball is near or on the ground
+                if (!isAboveGround) {
+                    // Force complete stop for very small movements only when near ground
+                    if (speed < microVelocityThreshold && Math.abs(angularVelocity) < microAngularThreshold) {
+                        Matter.Body.setVelocity(body, { x: 0, y: 0 });
+                        Matter.Body.setAngularVelocity(body, 0);
+                        
+                        // Only force sleep if ball is actually resting, not just slow
+                        if (body.position.y > groundLevel - ballRadius - 10) {
+                            Matter.Sleeping.set(body, true);
+                        }
+                    }
+                    // Enhanced micro-velocity damping for near-stationary bodies
+                    else if (speed < dampingVelocityThreshold) {
+                        Matter.Body.setVelocity(body, {
+                            x: velocity.x * 0.85,
+                            y: velocity.y * 0.85
+                        });
+                    }
                     
-                    // Force the body to sleep to prevent any micro-movements
-                    Matter.Sleeping.set(body, true);
+                    // Enhanced micro angular velocity damping
+                    if (Math.abs(angularVelocity) < dampingAngularThreshold) {
+                        Matter.Body.setAngularVelocity(body, angularVelocity * 0.8);
+                    }
+                    
+                    // Additional stability check for balls in contact with others
+                    this.stabilizeStackedBalls(body);
                 }
-                // Enhanced micro-velocity damping for near-stationary bodies
-                else if (speed < dampingVelocityThreshold) {
-                    Matter.Body.setVelocity(body, {
-                        x: velocity.x * 0.85, // More aggressive damping
-                        y: velocity.y * 0.85
-                    });
-                }
-                
-                // Enhanced micro angular velocity damping
-                if (Math.abs(angularVelocity) < dampingAngularThreshold) {
-                    Matter.Body.setAngularVelocity(body, angularVelocity * 0.8); // More aggressive
-                }
-                
-                // Additional stability check for balls in contact with others
-                this.stabilizeStackedBalls(body);
             }
         });
     }
@@ -209,8 +228,13 @@ export class PhysicsEngine {
         const velocity = body.velocity;
         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
         
-        // If ball is moving very slowly and potentially in a stack
-        if (speed < 0.05) {
+        // Only stabilize balls that are near the ground and moving very slowly
+        const groundLevel = 768 - 17; // canvas height - wall thickness
+        const ballRadius = body.circleRadius || 20;
+        const isNearGround = body.position.y > groundLevel - ballRadius - 50;
+        
+        // If ball is moving very slowly and is near ground level
+        if (speed < 0.05 && isNearGround) {
             const bodies = Matter.Composite.allBodies(this.world);
             let hasContact = false;
             
@@ -230,7 +254,7 @@ export class PhysicsEngine {
             });
             
             // Also check contact with ground
-            if (position.y > 768 - 17 - (body.circleRadius || 20) - 5) {
+            if (position.y > groundLevel - ballRadius - 5) {
                 hasContact = true;
             }
             
@@ -241,8 +265,8 @@ export class PhysicsEngine {
                     y: velocity.y * 0.7
                 });
                 
-                // If extremely slow, force to sleep
-                if (speed < 0.01) {
+                // If extremely slow and definitely on ground, force to sleep
+                if (speed < 0.01 && position.y > groundLevel - ballRadius - 10) {
                     Matter.Body.setVelocity(body, { x: 0, y: 0 });
                     Matter.Body.setAngularVelocity(body, 0);
                     Matter.Sleeping.set(body, true);
