@@ -200,6 +200,10 @@ export class PhysicsEngine {
         const maxVelocity = 20; // Reduced from 30 to 20 to better contain small balls
         const maxVelocitySquared = maxVelocity * maxVelocity;
         
+        // Minimum velocity threshold - set very small velocities to zero to prevent oscillation
+        const restThreshold = 0.01; // If velocity components are smaller than this, set to zero
+        const restThresholdSquared = restThreshold * restThreshold;
+        
         const bodies = Matter.Composite.allBodies(this.world);
         
         bodies.forEach(body => {
@@ -208,8 +212,16 @@ export class PhysicsEngine {
                 const velocity = body.velocity;
                 const velocityMagnitudeSquared = velocity.x * velocity.x + velocity.y * velocity.y;
                 
+                // If velocity is very small, set to zero to prevent micro-oscillations
+                if (velocityMagnitudeSquared > 0 && velocityMagnitudeSquared < restThresholdSquared) {
+                    Matter.Body.setVelocity(body, { x: 0, y: 0 });
+                    // Only log this occasionally to avoid spam
+                    if (Math.random() < 0.01) { // Log ~1% of rest dampening events
+                        console.log(`Ball velocity set to rest (was ${Math.sqrt(velocityMagnitudeSquared).toFixed(4)})`);
+                    }
+                }
                 // If velocity exceeds maximum, scale it down
-                if (velocityMagnitudeSquared > maxVelocitySquared) {
+                else if (velocityMagnitudeSquared > maxVelocitySquared) {
                     const velocityMagnitude = Math.sqrt(velocityMagnitudeSquared);
                     const scale = maxVelocity / velocityMagnitude;
                     
