@@ -23,6 +23,9 @@ export class Ball {
             label: 'ball'
         });
 
+        // Ensure ball starts with zero angular velocity (no spin)
+        Matter.Body.setAngularVelocity(this.body, 0);
+
         // Store the radius directly on the body for accurate rendering
         this.body.circleRadius = this.radius;
 
@@ -90,6 +93,8 @@ export class Ball {
         if (this.isCurrentBall) {
             console.log('Releasing ball from static state');
             Matter.Body.setStatic(this.body, false);
+            // Ensure ball has no angular velocity when released (no spin)
+            Matter.Body.setAngularVelocity(this.body, 0);
             this.isCurrentBall = false;
             console.log('Ball released and should now fall');
         }
@@ -185,7 +190,7 @@ export class BallManager {
     moveCurrentBall(direction) {
         if (!this.currentBall) return;
 
-        // For static balls (current ball), use position updates instead of forces
+        // Only allow movement of the current (static) ball - once dropped, only physics should affect it
         if (this.currentBall.isCurrentBall) {
             const currentPos = this.currentBall.getPosition();
             const moveDistance = 5; // Distance to move per frame
@@ -200,19 +205,8 @@ export class BallManager {
             newX = Math.max(minX, Math.min(maxX, newX));
             
             this.currentBall.setPosition(newX, currentPos.y);
-        } else {
-            // For dropped balls, use force-based movement (if needed)
-            const moveForce = 0.002;
-            const maxSpeed = 5;
-            
-            // Apply horizontal force
-            let forceX = direction * moveForce;
-            
-            // Limit horizontal speed
-            if (Math.abs(this.currentBall.body.velocity.x) < maxSpeed) {
-                this.currentBall.applyForce(forceX, 0);
-            }
         }
+        // No else block - dropped balls should only be affected by gravity and collisions
     }
 
     updateUI() {
