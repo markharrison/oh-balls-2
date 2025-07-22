@@ -93,11 +93,20 @@ export class Ball {
     release() {
         if (this.isCurrentBall) {
             console.log('Releasing ball from static state');
+            console.log(`   Pre-release position: (${this.body.position.x.toFixed(3)}, ${this.body.position.y.toFixed(3)})`);
+            console.log(`   Pre-release velocity: (${this.body.velocity.x.toFixed(6)}, ${this.body.velocity.y.toFixed(6)})`);
+            
             Matter.Body.setStatic(this.body, false);
             // Ensure ball has no angular velocity when released (no spin)
             Matter.Body.setAngularVelocity(this.body, 0);
+            
+            // CRITICAL: Ensure ball has zero horizontal velocity when released
+            Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
+            
             this.isCurrentBall = false;
-            console.log('Ball released and should now fall');
+            
+            console.log(`   Post-release velocity: (${this.body.velocity.x.toFixed(6)}, ${this.body.velocity.y.toFixed(6)})`);
+            console.log('Ball released and should now fall straight down');
         }
     }
 
