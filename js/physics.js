@@ -22,6 +22,32 @@ export class PhysicsEngine {
         Matter.Events.on(this.engine, 'afterUpdate', () => {
             this.handleMassImbalancedCollisions();
         });
+        
+        // Track ground collisions to debug angular velocity bias
+        Matter.Events.on(this.engine, 'collisionStart', (event) => {
+            event.pairs.forEach(pair => {
+                const bodyA = pair.bodyA;
+                const bodyB = pair.bodyB;
+                
+                // Check for ball-ground collisions
+                const ball = bodyA.label === 'ball' ? bodyA : (bodyB.label === 'ball' ? bodyB : null);
+                const ground = bodyA.label === 'ground' ? bodyA : (bodyB.label === 'ground' ? bodyB : null);
+                
+                if (ball && ground) {
+                    // Log the ball's state before and track angular velocity development
+                    const preAngularVel = ball.angularVelocity;
+                    const velocity = ball.velocity;
+                    
+                    // Schedule to check angular velocity after collision is processed
+                    setTimeout(() => {
+                        const postAngularVel = ball.angularVelocity;
+                        if (Math.abs(postAngularVel) > 0.01) {
+                            console.log(`Ground collision: Ball velocity (${velocity.x.toFixed(3)}, ${velocity.y.toFixed(3)}) -> Angular velocity ${preAngularVel.toFixed(4)} -> ${postAngularVel.toFixed(4)} | Direction: ${velocity.x > 0 ? 'right' : velocity.x < 0 ? 'left' : 'center'} -> ${postAngularVel > 0 ? 'CCW' : 'CW'}`);
+                        }
+                    }, 1);
+                }
+            });
+        });
     }
 
     handleMassImbalancedCollisions() {
@@ -192,9 +218,6 @@ export class PhysicsEngine {
         // Apply velocity clamping to prevent runaway speeds that cause ball disappearance
         this.clampVelocities();
         
-        // Suppress angular velocity for all balls to prevent unwanted spin
-        this.suppressAngularVelocity();
-        
         // Render the scene
         this.renderScene();
     }
@@ -225,13 +248,14 @@ export class PhysicsEngine {
                     }
                 }
                 
-                // If angular velocity is very small, set to zero to prevent micro-oscillations
+                // Only dampen angular velocity if the ball is also at rest (very low linear velocity)
+                // This allows natural spinning from ball interactions while eliminating micro-oscillations
                 const angularVelocity = body.angularVelocity;
-                if (Math.abs(angularVelocity) > 0 && Math.abs(angularVelocity) < restThreshold) {
+                if (Math.abs(angularVelocity) > 0 && Math.abs(angularVelocity) < restThreshold && velocityMagnitudeSquared < restThresholdSquared) {
                     Matter.Body.setAngularVelocity(body, 0);
                     // Only log this very occasionally to avoid spam
                     if (Math.random() < 0.001) { // Log ~0.1% of angular rest dampening events
-                        console.log(`Ball angular velocity set to rest (was ${angularVelocity.toFixed(4)}) - Note: Events repeat due to physics forces`);
+                        console.log(`Ball angular velocity set to rest (was ${angularVelocity.toFixed(4)}) - Only when ball is also at linear rest`);
                     }
                 }
                 // If velocity exceeds maximum, scale it down
@@ -246,27 +270,6 @@ export class PhysicsEngine {
                     });
                     
                     console.warn(`Ball velocity clamped from ${velocityMagnitude.toFixed(1)} to ${maxVelocity}`);
-                }
-            }
-        });
-    }
-
-    suppressAngularVelocity() {
-        // Prevent all balls from having angular velocity (spin) to maintain game design intent
-        const bodies = Matter.Composite.allBodies(this.world);
-        
-        bodies.forEach(body => {
-            // Only suppress angular velocity for balls, not static walls
-            if (body.label === 'ball' && !body.isStatic) {
-                const angularVelocity = body.angularVelocity;
-                
-                // If ball has any angular velocity, remove it
-                if (Math.abs(angularVelocity) > 0) {
-                    Matter.Body.setAngularVelocity(body, 0);
-                    // Only log significant angular velocities to track when this happens
-                    if (Math.abs(angularVelocity) > 0.01) {
-                        console.log(`Suppressed angular velocity: ${angularVelocity.toFixed(4)} (ball should not spin)`);
-                    }
                 }
             }
         });
