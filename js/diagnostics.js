@@ -155,6 +155,7 @@ export class DiagnosticPanel {
         // Collect ball data with velocity tracking
         const ballData = balls.map(ball => {
             const velocity = ball.body.velocity;
+            const angularVelocity = ball.body.angularVelocity;
             const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
             const position = ball.getPosition();
             const mass = ball.body.mass;
@@ -168,6 +169,7 @@ export class DiagnosticPanel {
                 mass,
                 position,
                 velocity,
+                angularVelocity,
                 speed,
                 isHighVelocity,
                 isOffScreen,
@@ -237,7 +239,7 @@ export class DiagnosticPanel {
                 ${ballData.length === 0 ? 'No balls in scene' : 
                   ballData.map((ball, i) => `
                     <div style="margin-bottom: 2px; font-size: 11px; ${ball.isHighVelocity ? 'color: #ff4444' : ''}">
-                      Ball ${i + 1}${ball.isCurrentBall ? ' (CURRENT)' : ''}: Size ${ball.size} | Mass ${ball.mass.toFixed(1)} | Speed ${ball.speed.toFixed(1)} | Pos (${ball.position.x.toFixed(0)},${ball.position.y.toFixed(0)}) | Vel (${ball.velocity.x.toFixed(3)},${ball.velocity.y.toFixed(3)})${ball.isHighVelocity ? ' ⚠️ HIGH SPEED' : ''}${ball.isOffScreen ? ' 🔴 OFF-SCREEN' : ''}
+                      Ball ${i + 1}${ball.isCurrentBall ? ' (CURRENT)' : ''}: Size ${ball.size} | Mass ${ball.mass.toFixed(1)} | Speed ${ball.speed.toFixed(1)} | Pos (${ball.position.x.toFixed(0)},${ball.position.y.toFixed(0)}) | Vel (${ball.velocity.x.toFixed(3)},${ball.velocity.y.toFixed(3)}) | AngVel ${ball.angularVelocity.toFixed(3)}${ball.isHighVelocity ? ' ⚠️ HIGH SPEED' : ''}${ball.isOffScreen ? ' 🔴 OFF-SCREEN' : ''}
                     </div>
                   `).join('')}
             </div>
