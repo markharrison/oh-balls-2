@@ -8,9 +8,7 @@ export class DiagnosticPanel {
         this.maxCollisionEvents = 50; // Keep last 50 collision events
         this.ballTrackingData = new Map(); // Track ball lifecycle data
         this.velocityClampEvents = []; // Track velocity clamping events
-        this.restDampeningEvents = []; // Track rest dampening events
         this.maxVelocityEvents = 20; // Keep last 20 velocity clamp events
-        this.maxRestEvents = 15; // Keep last 15 rest dampening events
         
         this.createPanel();
         this.setupCollisionTracking();
@@ -26,7 +24,8 @@ export class DiagnosticPanel {
             position: fixed;
             top: 10px;
             right: 10px;
-            width: 675px;
+            left: 10px;
+            width: calc(100vw - 20px);
             height: 500px;
             background: rgba(0, 0, 0, 0.9);
             color: #00ff00;
@@ -97,25 +96,6 @@ export class DiagnosticPanel {
             // Call original warn
             originalWarn.apply(console, args);
         };
-        
-        // Override console.log to capture rest dampening events
-        const originalLog = console.log;
-        console.log = (...args) => {
-            const message = args.join(' ');
-            if (message.includes('Ball velocity set to rest')) {
-                this.restDampeningEvents.unshift({
-                    timestamp: performance.now(),
-                    message: message
-                });
-                
-                if (this.restDampeningEvents.length > this.maxRestEvents) {
-                    this.restDampeningEvents.pop();
-                }
-            }
-            
-            // Call original log
-            originalLog.apply(console, args);
-        };
     }
 
     setupKeyboardControls() {
@@ -131,10 +111,7 @@ export class DiagnosticPanel {
         this.panel.style.display = this.enabled ? 'block' : 'none';
         
         if (this.enabled) {
-            console.log('Diagnostic panel enabled - tracking physics data');
             this.updateLoop();
-        } else {
-            console.log('Diagnostic panel disabled');
         }
     }
 
@@ -195,11 +172,6 @@ export class DiagnosticPanel {
         const recentVelocityClamps = this.velocityClampEvents
             .filter(e => performance.now() - e.timestamp < 30000)
             .slice(0, 10);
-            
-        // Recent rest dampening events
-        const recentRestEvents = this.restDampeningEvents
-            .filter(e => performance.now() - e.timestamp < 15000)
-            .slice(0, 8);
 
         content.innerHTML = `
             <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
@@ -228,9 +200,6 @@ export class DiagnosticPanel {
                 </span><br>
                 <span style="color: ${recentVelocityClamps.length > 0 ? '#ff8844' : '#44ff44'}">
                     Velocity Clamps: ${recentVelocityClamps.length}
-                </span><br>
-                <span style="color: ${recentRestEvents.length > 0 ? '#8888ff' : '#44ff44'}">
-                    Rest Dampening: ${recentRestEvents.length}
                 </span>
             </div>
 
@@ -281,23 +250,10 @@ export class DiagnosticPanel {
                   `).join('')}
             </div>
 
-            <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                <strong>🛌 Rest Dampening Events (15s)</strong><br>
-                ${recentRestEvents.length === 0 ? 'No micro-oscillations dampened' :
-                  recentRestEvents.map(event => `
-                    <div style="font-size: 11px; margin-bottom: 3px; color: #8888ff;">
-                      ${((performance.now() - event.timestamp) / 1000).toFixed(1)}s ago:<br>
-                      ${event.message}
-                    </div>
-                  `).join('')}
-            </div>
-
             <div style="font-size: 10px; color: #888888;">
                 Press 'D' to toggle this panel<br>
                 Critical events (speed >25) kept for 60s | High impacts (speed >18) kept for 30s<br>
                 Velocity automatically clamped at 20 to prevent ball disappearance<br>
-                Rest dampening: velocities &lt;0.01 set to zero to prevent micro-oscillations<br>
-                Note: Rest dampening events repeat because gravity/forces constantly reactivate resting balls<br>
                 Mass scaling: √size (sqrt) to improve ball-to-ball bouncing | Restitution: 0.85<br>
                 Auto-dampening applied to speeds >18 | Friction: 0.2 | 3s grace period for off-screen balls
             </div>

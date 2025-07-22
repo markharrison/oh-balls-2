@@ -23,8 +23,6 @@ class Game {
     }
 
     init() {
-        console.log('Initializing Oh Balls 2...');
-        
         // Start physics engine
         this.physicsEngine.start();
         
@@ -33,8 +31,6 @@ class Game {
         
         // Start game loop
         this.start();
-        
-        console.log('Game initialized successfully!');
     }
 
     start() {
@@ -114,12 +110,6 @@ class Game {
 document.addEventListener('DOMContentLoaded', () => {
     // Create global game instance
     window.game = new Game();
-    
-    // Add some debug info to console
-    console.log('Oh Balls 2 - Physics Game');
-    console.log('Controls: ← → Arrow keys to move, ↓ or Space to drop');
-    console.log('Press D to toggle diagnostic panel for debugging');
-    console.log('Access game instance via window.game');
     
     // Initialize the game
     window.game.init();

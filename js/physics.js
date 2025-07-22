@@ -47,86 +47,47 @@ export class PhysicsEngine {
                     const isVerticalCollision = horizontalSpeed < Math.max(1.0, verticalSpeed * 0.1);
                     
                     if (isVerticalCollision) {
-                        console.log(`🔧 VERTICAL COLLISION DETECTED: Zeroing horizontal velocity ${velocity.x.toFixed(6)} (h-speed: ${horizontalSpeed.toFixed(3)}, v-speed: ${verticalSpeed.toFixed(3)})`);
                         Matter.Body.setVelocity(ball, { x: 0, y: velocity.y });
                     }
-                    
-                    // Capture detailed state before collision
-                    const preAngularVel = ball.angularVelocity;
-                    const position = ball.position;
-                    const ballRadius = ball.circleRadius || ((ball.bounds.max.x - ball.bounds.min.x) / 2);
-                    const ballSize = ball.ballSize || 'unknown'; // Track ball size if available
-                    const ballMass = ball.mass;
                     
                     // Schedule to check angular velocity and horizontal movement after collision is processed
                     setTimeout(() => {
                         const postAngularVel = ball.angularVelocity;
                         const postVelocity = ball.velocity;
                         const preHorizontalSpeed = Math.abs(velocity.x);
-                        const verticalSpeed = Math.abs(velocity.y);
                         const postHorizontalSpeed = Math.abs(postVelocity.x);
                         
                         // VERTICAL COLLISION POST-PROCESSING
                         // If this was identified as a vertical collision, ensure the post-collision velocity is also vertical
                         if (isVerticalCollision) {
                             if (Math.abs(postVelocity.x) > 0.001) {
-                                console.log(`🔧 POST-COLLISION VERTICAL CLEANUP: Forcing purely vertical bounce (was ${postVelocity.x.toFixed(6)}, ${postVelocity.y.toFixed(3)})`);
                                 Matter.Body.setVelocity(ball, { x: 0, y: postVelocity.y });
                             }
                             
                             // Also ensure no angular velocity for vertical bounces
                             if (Math.abs(postAngularVel) > 0.001) {
-                                console.log(`🔧 POST-COLLISION ANGULAR CLEANUP: Zeroing angular velocity for vertical bounce (was ${postAngularVel.toFixed(6)})`);
                                 Matter.Body.setAngularVelocity(ball, 0);
                             }
-                        }
-                        
-                        // Always log ground collisions to understand the size bias
-                        console.log(`🟡 Ground Collision Analysis:`);
-                        console.log(`   Ball: size=${ballSize} mass=${ballMass.toFixed(2)} radius=${ballRadius.toFixed(1)}`);
-                        console.log(`   Pre-collision: pos(${position.x.toFixed(1)}, ${position.y.toFixed(1)}) vel(${velocity.x.toFixed(6)}, ${velocity.y.toFixed(3)})`);
-                        console.log(`   Post-collision: vel(${postVelocity.x.toFixed(6)}, ${postVelocity.y.toFixed(3)})`);
-                        console.log(`   Angular: ${preAngularVel.toFixed(6)} -> ${postAngularVel.toFixed(6)} (${postAngularVel > 0 ? 'CCW' : 'CW'})`);
-                        console.log(`   H-Speed: ${preHorizontalSpeed.toFixed(6)} -> ${postHorizontalSpeed.toFixed(6)}`);
-                        
-                        // SPECIAL FOCUS: Check for leftward bias in larger balls
-                        if (preHorizontalSpeed < 0.001 && Math.abs(postVelocity.x) > 0.001) {
-                            console.log(`   🔍 LEFTWARD BIAS DETECTED:`);
-                            console.log(`      Initial H-velocity: ${velocity.x.toFixed(6)} (essentially zero)`);
-                            console.log(`      Post H-velocity: ${postVelocity.x.toFixed(6)} (${postVelocity.x < 0 ? 'LEFT' : 'RIGHT'})`);
-                            console.log(`      Ball size: ${ballSize} (${ballSize <= 2 ? 'SMALL' : 'LARGE'})`);
-                            console.log(`      Expected: Ball should bounce straight up, not sideways!`);
                         }
                         
                         // Check for unwanted angular velocity generation
                         if (Math.abs(postAngularVel) > 0.001) {
-                            let analysis = '';
                             let shouldCancelSpin = false;
                             
                             if (preHorizontalSpeed < 0.001) {
-                                analysis = 'ZERO pre-collision horizontal velocity - should not cause spin! (numerical precision issue)';
                                 shouldCancelSpin = true;
                             } else if (preHorizontalSpeed < 0.8) {
-                                // Small horizontal velocity likely caused by numerical precision errors in straight drops
-                                analysis = `Tiny horizontal velocity (${velocity.x.toFixed(6)}) likely from numerical precision - canceling unwanted spin`;
                                 shouldCancelSpin = true;
-                            } else {
-                                analysis = `Horizontal velocity (${velocity.x.toFixed(3)}) causing expected spin`;
                             }
-                            
-                            console.log(`   Analysis: ${analysis}`);
                             
                             // Cancel unwanted angular velocity for essentially straight drops
                             if (shouldCancelSpin) {
                                 Matter.Body.setAngularVelocity(ball, 0);
-                                console.log(`   🔧 Action: Angular velocity reset to 0 (was ${postAngularVel.toFixed(6)})`);
                             }
                         }
                         
                         // Check for unwanted horizontal velocity generation
                         if (preHorizontalSpeed < 0.001 && postHorizontalSpeed > 0.1) {
-                            console.log(`   ⚠️ ISSUE: Ball went from zero horizontal velocity to ${postHorizontalSpeed.toFixed(3)} - this causes leftward bias!`);
-                            console.log(`   🔧 Action: Zeroing unwanted horizontal velocity`);
                             Matter.Body.setVelocity(ball, { x: 0, y: postVelocity.y });
                         }
                     }, 1);
@@ -159,7 +120,7 @@ export class PhysicsEngine {
     }
 
     setupBoundaries() {
-        const wallThickness = 17; // Reduced from 50 to about 1/3 (50/3 ≈ 17)
+        const wallThickness = 16;
         const width = 1024;
         const height = 768;
 
@@ -204,7 +165,7 @@ export class PhysicsEngine {
     }
 
     start() {
-        console.log('Physics engine started');
+        // Physics engine started
     }
 
     stop() {
@@ -335,10 +296,6 @@ export class PhysicsEngine {
                 // If velocity is very small, set to zero to prevent micro-oscillations
                 if (velocityMagnitudeSquared > 0 && velocityMagnitudeSquared < restThresholdSquared) {
                     Matter.Body.setVelocity(body, { x: 0, y: 0 });
-                    // Only log this very occasionally to avoid spam (gravity constantly reactivates resting balls)
-                    if (Math.random() < 0.001) { // Log ~0.1% of rest dampening events
-                        console.log(`Ball velocity set to rest (was ${Math.sqrt(velocityMagnitudeSquared).toFixed(4)}) - Note: Events repeat due to gravity/physics forces`);
-                    }
                 }
                 
                 // Only dampen angular velocity if the ball is also at rest (very low linear velocity)
@@ -346,10 +303,6 @@ export class PhysicsEngine {
                 const angularVelocity = body.angularVelocity;
                 if (Math.abs(angularVelocity) > 0 && Math.abs(angularVelocity) < restThreshold && velocityMagnitudeSquared < restThresholdSquared) {
                     Matter.Body.setAngularVelocity(body, 0);
-                    // Only log this very occasionally to avoid spam
-                    if (Math.random() < 0.001) { // Log ~0.1% of angular rest dampening events
-                        console.log(`Ball angular velocity set to rest (was ${angularVelocity.toFixed(4)}) - Only when ball is also at linear rest`);
-                    }
                 }
                 // If velocity exceeds maximum, scale it down
                 else if (velocityMagnitudeSquared > maxVelocitySquared) {
@@ -361,8 +314,6 @@ export class PhysicsEngine {
                         x: velocity.x * scale,
                         y: velocity.y * scale
                     });
-                    
-                    console.warn(`Ball velocity clamped from ${velocityMagnitude.toFixed(1)} to ${maxVelocity}`);
                 }
             }
         });

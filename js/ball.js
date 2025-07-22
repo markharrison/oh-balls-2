@@ -92,10 +92,6 @@ export class Ball {
     // Release ball from static state (when dropped)
     release() {
         if (this.isCurrentBall) {
-            console.log('Releasing ball from static state');
-            console.log(`   Pre-release position: (${this.body.position.x.toFixed(3)}, ${this.body.position.y.toFixed(3)})`);
-            console.log(`   Pre-release velocity: (${this.body.velocity.x.toFixed(6)}, ${this.body.velocity.y.toFixed(6)})`);
-            
             Matter.Body.setStatic(this.body, false);
             // Ensure ball has no angular velocity when released (no spin)
             Matter.Body.setAngularVelocity(this.body, 0);
@@ -104,9 +100,6 @@ export class Ball {
             Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
             
             this.isCurrentBall = false;
-            
-            console.log(`   Post-release velocity: (${this.body.velocity.x.toFixed(6)}, ${this.body.velocity.y.toFixed(6)})`);
-            console.log('Ball released and should now fall straight down');
         }
     }
 
@@ -135,17 +128,13 @@ export class BallManager {
     spawnBall() {
         // Don't spawn if we already have a current ball
         if (this.currentBall) {
-            console.log('Cannot spawn - current ball already exists');
             return;
         }
         
         // Don't spawn if we're still waiting
         if (this.gameState === 'waiting' && performance.now() < this.nextSpawnTime) {
-            console.log('Cannot spawn - still waiting for spawn time');
             return;
         }
-        
-        console.log(`Spawning new ball with size ${this.nextBallSize}`);
         
         const x = 512; // Center of canvas (1024/2)
         const y = 50;  // Near top
@@ -161,22 +150,16 @@ export class BallManager {
         
         // Update UI
         this.updateUI();
-        
-        console.log(`Ball spawned successfully. Ready to drop.`);
     }
 
     dropCurrentBall() {
         if (!this.currentBall) {
-            console.log('No current ball to drop');
             return;
         }
 
         if (this.gameState !== 'ready') {
-            console.log('Cannot drop - not in ready state');
             return;
         }
-
-        console.log('Dropping current ball');
         
         // Release the ball from static state so gravity affects it
         this.currentBall.release();
@@ -193,8 +176,6 @@ export class BallManager {
         
         // Update UI to show waiting state
         this.updateUI();
-        
-        console.log('Ball dropped successfully. Next ball in 2 seconds.');
     }
 
     moveCurrentBall(direction) {
@@ -208,7 +189,7 @@ export class BallManager {
             
             // Keep within bounds (accounting for ball radius)
             const ballRadius = this.currentBall.radius;
-            const wallThickness = 17; // Updated wall thickness
+            const wallThickness = 16; // Updated wall thickness
             const minX = wallThickness + ballRadius;
             const maxX = 1024 - wallThickness - ballRadius;
             
@@ -265,14 +246,12 @@ export class BallManager {
                 // Track when this ball first went off-screen
                 if (!this.offScreenBalls.has(ball)) {
                     this.offScreenBalls.set(ball, now);
-                    console.log(`Ball went off-screen at (${pos.x.toFixed(0)}, ${pos.y.toFixed(0)}), starting grace period`);
                     return true; // Keep the ball for now
                 }
                 
                 // Check if grace period has expired
                 const offScreenTime = now - this.offScreenBalls.get(ball);
                 if (offScreenTime > gracePeriod) {
-                    console.log(`Ball removed after ${(offScreenTime/1000).toFixed(1)}s off-screen at (${pos.x.toFixed(0)}, ${pos.y.toFixed(0)})`);
                     this.offScreenBalls.delete(ball);
                     ball.destroy();
                     return false;
@@ -282,7 +261,6 @@ export class BallManager {
             } else {
                 // Ball is back on screen, remove from off-screen tracking
                 if (this.offScreenBalls.has(ball)) {
-                    console.log(`Ball returned to screen at (${pos.x.toFixed(0)}, ${pos.y.toFixed(0)})`);
                     this.offScreenBalls.delete(ball);
                 }
                 return true;
