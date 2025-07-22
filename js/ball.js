@@ -26,8 +26,9 @@ export class Ball {
         // Ensure ball starts with zero angular velocity (no spin)
         Matter.Body.setAngularVelocity(this.body, 0);
 
-        // Store the radius directly on the body for accurate rendering
+        // Store the radius and size directly on the body for accurate rendering and debugging
         this.body.circleRadius = this.radius;
+        this.body.ballSize = this.size;
 
         // If this is the current ball, make it static (not affected by gravity)
         if (this.isCurrentBall) {
