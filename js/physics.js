@@ -35,7 +35,8 @@ export class PhysicsEngine {
                 
                 // If a ball is moving very fast, apply additional dampening
                 // This helps prevent small balls from being launched into orbit by large balls
-                if (speed > 15) {
+                // Increased threshold from 15 to 18 to allow more natural bouncing
+                if (speed > 18) {
                     const dampeningFactor = 0.9; // Reduce velocity by 10%
                     Matter.Body.setVelocity(body, {
                         x: velocity.x * dampeningFactor,

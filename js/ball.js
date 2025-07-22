@@ -11,9 +11,9 @@ export class Ball {
         // Create Matter.js body for the ball
         this.body = Matter.Bodies.circle(x, y, this.radius, {
             density: this.mass / (Math.PI * this.radius * this.radius), // Density = mass/area
-            friction: 0.4,
+            friction: 0.2, // Reduced from 0.4 to 0.2 for better ball-to-ball bouncing
             frictionAir: 0.005,
-            restitution: 0.7, // Reduced from 0.9 to 0.7 to prevent energy accumulation
+            restitution: 0.85, // Increased from 0.7 to 0.85 for better ball-to-ball bouncing
             render: {
                 fillStyle: this.color,
                 strokeStyle: '#ffffff',
@@ -41,10 +41,10 @@ export class Ball {
     }
 
     calculateMass(size) {
-        // Mass proportional to size - reduced scaling to prevent extreme momentum transfer
-        // Changed from cubic (size^3) to linear scaling to reduce mass imbalance
-        // Size 1: 1.0, Size 5: 5.0, Size 15: 15.0 (instead of 1, 125, 3375)
-        return size * 1.0;
+        // Mass proportional to size - further reduced scaling to improve ball-to-ball bouncing
+        // Changed from cubic (size^3) to sqrt scaling to minimize mass imbalance
+        // Size 1: √1 = 1.0, Size 5: √5 ≈ 2.2, Size 15: √15 ≈ 3.9 (vs previous 1, 5, 15)
+        return Math.sqrt(size) * 1.0;
     }
 
     getColorForSize(size) {

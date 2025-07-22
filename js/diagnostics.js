@@ -292,12 +292,12 @@ export class DiagnosticPanel {
 
             <div style="font-size: 10px; color: #888888;">
                 Press 'D' to toggle this panel<br>
-                Critical events (speed >25) kept for 60s | High impacts (speed >15) kept for 30s<br>
+                Critical events (speed >25) kept for 60s | High impacts (speed >18) kept for 30s<br>
                 Velocity automatically clamped at 20 to prevent ball disappearance<br>
                 Rest dampening: velocities &lt;0.01 set to zero to prevent micro-oscillations<br>
                 Note: Rest dampening events repeat because gravity/forces constantly reactivate resting balls<br>
-                Mass scaling: linear (not cubic) to reduce collision imbalance | Restitution: 0.7<br>
-                Auto-dampening applied to speeds >15 | 3s grace period for off-screen balls
+                Mass scaling: √size (sqrt) to improve ball-to-ball bouncing | Restitution: 0.85<br>
+                Auto-dampening applied to speeds >18 | Friction: 0.2 | 3s grace period for off-screen balls
             </div>
         `;
     }
