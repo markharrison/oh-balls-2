@@ -215,9 +215,9 @@ export class PhysicsEngine {
                 // If velocity is very small, set to zero to prevent micro-oscillations
                 if (velocityMagnitudeSquared > 0 && velocityMagnitudeSquared < restThresholdSquared) {
                     Matter.Body.setVelocity(body, { x: 0, y: 0 });
-                    // Only log this occasionally to avoid spam
-                    if (Math.random() < 0.01) { // Log ~1% of rest dampening events
-                        console.log(`Ball velocity set to rest (was ${Math.sqrt(velocityMagnitudeSquared).toFixed(4)})`);
+                    // Only log this very occasionally to avoid spam (gravity constantly reactivates resting balls)
+                    if (Math.random() < 0.001) { // Log ~0.1% of rest dampening events
+                        console.log(`Ball velocity set to rest (was ${Math.sqrt(velocityMagnitudeSquared).toFixed(4)}) - Note: Events repeat due to gravity/physics forces`);
                     }
                 }
                 // If velocity exceeds maximum, scale it down

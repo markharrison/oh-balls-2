@@ -26,7 +26,7 @@ export class DiagnosticPanel {
             position: fixed;
             top: 10px;
             right: 10px;
-            width: 450px;
+            width: 675px;
             height: 500px;
             background: rgba(0, 0, 0, 0.9);
             color: #00ff00;
@@ -295,6 +295,7 @@ export class DiagnosticPanel {
                 Critical events (speed >25) kept for 60s | High impacts (speed >15) kept for 30s<br>
                 Velocity automatically clamped at 20 to prevent ball disappearance<br>
                 Rest dampening: velocities &lt;0.01 set to zero to prevent micro-oscillations<br>
+                Note: Rest dampening events repeat because gravity/forces constantly reactivate resting balls<br>
                 Mass scaling: linear (not cubic) to reduce collision imbalance | Restitution: 0.7<br>
                 Auto-dampening applied to speeds >15 | 3s grace period for off-screen balls
             </div>
