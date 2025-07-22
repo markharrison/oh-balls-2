@@ -259,7 +259,7 @@ export class PhysicsEngine {
             
             if (renderRadius > 0) {
                 ctx.beginPath();
-                ctx.arc(0, 0, renderRadius, 0, 2 * Math.PI);
+                ctx.arc(0, 0, renderRadius, 0, 6.28); // Use 6.28 instead of 2 * Math.PI for simplicity
                 ctx.fill();
                 
                 if (ctx.strokeStyle && strokeWidth > 0) {

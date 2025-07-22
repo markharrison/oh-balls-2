@@ -10,7 +10,7 @@ export class Ball {
         
         // Create Matter.js body for the ball
         this.body = Matter.Bodies.circle(x, y, this.radius, {
-            density: this.mass / (Math.PI * this.radius * this.radius), // Density = mass/area
+            mass: this.mass, // Set mass directly instead of calculating density with Pi
             friction: 0.2, // Reduced from 0.4 to 0.2 for better ball-to-ball bouncing
             frictionAir: 0.005,
             restitution: 0.85, // Increased from 0.7 to 0.85 for better ball-to-ball bouncing
