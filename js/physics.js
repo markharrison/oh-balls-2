@@ -192,6 +192,9 @@ export class PhysicsEngine {
         // Apply velocity clamping to prevent runaway speeds that cause ball disappearance
         this.clampVelocities();
         
+        // Suppress angular velocity for all balls to prevent unwanted spin
+        this.suppressAngularVelocity();
+        
         // Render the scene
         this.renderScene();
     }
@@ -243,6 +246,27 @@ export class PhysicsEngine {
                     });
                     
                     console.warn(`Ball velocity clamped from ${velocityMagnitude.toFixed(1)} to ${maxVelocity}`);
+                }
+            }
+        });
+    }
+
+    suppressAngularVelocity() {
+        // Prevent all balls from having angular velocity (spin) to maintain game design intent
+        const bodies = Matter.Composite.allBodies(this.world);
+        
+        bodies.forEach(body => {
+            // Only suppress angular velocity for balls, not static walls
+            if (body.label === 'ball' && !body.isStatic) {
+                const angularVelocity = body.angularVelocity;
+                
+                // If ball has any angular velocity, remove it
+                if (Math.abs(angularVelocity) > 0) {
+                    Matter.Body.setAngularVelocity(body, 0);
+                    // Only log significant angular velocities to track when this happens
+                    if (Math.abs(angularVelocity) > 0.01) {
+                        console.log(`Suppressed angular velocity: ${angularVelocity.toFixed(4)} (ball should not spin)`);
+                    }
                 }
             }
         });
