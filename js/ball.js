@@ -45,10 +45,10 @@ export class Ball {
     }
 
     calculateMass(size) {
-        // Use constant mass for all balls to ensure consistent density and physics behavior
-        // This prevents the density decrease that was causing larger balls to drift horizontally
-        // All balls now have the same physics stability regardless of size
-        return 1.0;
+        // Use simple integer scaling to avoid floating-point precision issues
+        // Size 1: mass 1, Size 2: mass 2, Size 3: mass 3, Size 4: mass 4, Size 5: mass 5
+        // This eliminates the complex square root calculations that were causing physics inconsistencies
+        return size;
     }
 
     getColorForSize(size) {
@@ -93,11 +93,20 @@ export class Ball {
     release() {
         if (this.isCurrentBall) {
             console.log('Releasing ball from static state');
+            console.log(`   Pre-release position: (${this.body.position.x.toFixed(3)}, ${this.body.position.y.toFixed(3)})`);
+            console.log(`   Pre-release velocity: (${this.body.velocity.x.toFixed(6)}, ${this.body.velocity.y.toFixed(6)})`);
+            
             Matter.Body.setStatic(this.body, false);
             // Ensure ball has no angular velocity when released (no spin)
             Matter.Body.setAngularVelocity(this.body, 0);
+            
+            // CRITICAL: Ensure ball has zero horizontal velocity when released
+            Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
+            
             this.isCurrentBall = false;
-            console.log('Ball released and should now fall');
+            
+            console.log(`   Post-release velocity: (${this.body.velocity.x.toFixed(6)}, ${this.body.velocity.y.toFixed(6)})`);
+            console.log('Ball released and should now fall straight down');
         }
     }
 
