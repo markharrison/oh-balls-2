@@ -23,7 +23,7 @@ export class PhysicsEngine {
             this.handleMassImbalancedCollisions();
         });
         
-        // Track ground collisions to debug angular velocity bias
+        // Track ground collisions to debug angular velocity generation
         Matter.Events.on(this.engine, 'collisionStart', (event) => {
             event.pairs.forEach(pair => {
                 const bodyA = pair.bodyA;
@@ -34,15 +34,35 @@ export class PhysicsEngine {
                 const ground = bodyA.label === 'ground' ? bodyA : (bodyB.label === 'ground' ? bodyB : null);
                 
                 if (ball && ground) {
-                    // Log the ball's state before and track angular velocity development
+                    // Capture detailed state before collision
                     const preAngularVel = ball.angularVelocity;
                     const velocity = ball.velocity;
+                    const position = ball.position;
+                    const ballRadius = ball.circleRadius || ((ball.bounds.max.x - ball.bounds.min.x) / 2);
                     
                     // Schedule to check angular velocity after collision is processed
                     setTimeout(() => {
                         const postAngularVel = ball.angularVelocity;
-                        if (Math.abs(postAngularVel) > 0.01) {
-                            console.log(`Ground collision: Ball velocity (${velocity.x.toFixed(3)}, ${velocity.y.toFixed(3)}) -> Angular velocity ${preAngularVel.toFixed(4)} -> ${postAngularVel.toFixed(4)} | Direction: ${velocity.x > 0 ? 'right' : velocity.x < 0 ? 'left' : 'center'} -> ${postAngularVel > 0 ? 'CCW' : 'CW'}`);
+                        if (Math.abs(postAngularVel) > 0.005) { // Lower threshold to catch smaller angular velocities
+                            // Analyze the potential causes
+                            const horizontalSpeed = Math.abs(velocity.x);
+                            const verticalSpeed = Math.abs(velocity.y);
+                            
+                            // Check if horizontal velocity is truly zero or just very small
+                            let analysis = '';
+                            if (horizontalSpeed < 0.001) {
+                                analysis = 'ZERO horizontal velocity - should not cause spin!';
+                            } else if (horizontalSpeed < 0.1) {
+                                analysis = `Tiny horizontal velocity (${velocity.x.toFixed(6)}) causing spin`;
+                            } else {
+                                analysis = `Horizontal velocity (${velocity.x.toFixed(3)}) causing expected spin`;
+                            }
+                            
+                            console.log(`🟡 Ground Collision Analysis:`);
+                            console.log(`   Ball pos: (${position.x.toFixed(1)}, ${position.y.toFixed(1)}) radius: ${ballRadius.toFixed(1)}`);
+                            console.log(`   Velocity: (${velocity.x.toFixed(6)}, ${velocity.y.toFixed(3)}) H:${horizontalSpeed.toFixed(6)} V:${verticalSpeed.toFixed(1)}`);
+                            console.log(`   Angular: ${preAngularVel.toFixed(6)} -> ${postAngularVel.toFixed(6)} (${postAngularVel > 0 ? 'CCW' : 'CW'})`);
+                            console.log(`   Analysis: ${analysis}`);
                         }
                     }, 1);
                 }
