@@ -13,10 +13,8 @@ export class PhysicsEngine {
         this.engine.world.gravity.y = 0.8;
         this.engine.timing.timeScale = 1;
         
-        // Increase engine precision to fix ball radius-specific bounce issues
-        // Default positionIterations: 6, velocityIterations: 4
-        this.engine.positionIterations = 12; // Double the default for better precision
-        this.engine.velocityIterations = 8;  // Double the default for better collision resolution
+        // Use default engine precision - positionIterations: 6, velocityIterations: 4
+        // (Engine precision improvements didn't fix the ball radius-specific bounce issues)
 
         this.setupBoundaries();
         this.setupCollisionDampening();
@@ -39,8 +37,19 @@ export class PhysicsEngine {
                 const ground = bodyA.label === 'ground' ? bodyA : (bodyB.label === 'ground' ? bodyB : null);
                 
                 if (ball && ground) {
-                    // Simple collision logging without pre-collision correction
+                    // VERTICAL COLLISION DETECTION
                     const velocity = ball.velocity;
+                    const horizontalSpeed = Math.abs(velocity.x);
+                    const verticalSpeed = Math.abs(velocity.y);
+                    
+                    // Detect if this should be a "vertical" collision based on initial drop conditions
+                    // If horizontal speed is much smaller than vertical speed, this should be purely vertical
+                    const isVerticalCollision = horizontalSpeed < Math.max(1.0, verticalSpeed * 0.1);
+                    
+                    if (isVerticalCollision) {
+                        console.log(`🔧 VERTICAL COLLISION DETECTED: Zeroing horizontal velocity ${velocity.x.toFixed(6)} (h-speed: ${horizontalSpeed.toFixed(3)}, v-speed: ${verticalSpeed.toFixed(3)})`);
+                        Matter.Body.setVelocity(ball, { x: 0, y: velocity.y });
+                    }
                     
                     // Capture detailed state before collision
                     const preAngularVel = ball.angularVelocity;
@@ -56,6 +65,21 @@ export class PhysicsEngine {
                         const preHorizontalSpeed = Math.abs(velocity.x);
                         const verticalSpeed = Math.abs(velocity.y);
                         const postHorizontalSpeed = Math.abs(postVelocity.x);
+                        
+                        // VERTICAL COLLISION POST-PROCESSING
+                        // If this was identified as a vertical collision, ensure the post-collision velocity is also vertical
+                        if (isVerticalCollision) {
+                            if (Math.abs(postVelocity.x) > 0.001) {
+                                console.log(`🔧 POST-COLLISION VERTICAL CLEANUP: Forcing purely vertical bounce (was ${postVelocity.x.toFixed(6)}, ${postVelocity.y.toFixed(3)})`);
+                                Matter.Body.setVelocity(ball, { x: 0, y: postVelocity.y });
+                            }
+                            
+                            // Also ensure no angular velocity for vertical bounces
+                            if (Math.abs(postAngularVel) > 0.001) {
+                                console.log(`🔧 POST-COLLISION ANGULAR CLEANUP: Zeroing angular velocity for vertical bounce (was ${postAngularVel.toFixed(6)})`);
+                                Matter.Body.setAngularVelocity(ball, 0);
+                            }
+                        }
                         
                         // Always log ground collisions to understand the size bias
                         console.log(`🟡 Ground Collision Analysis:`);
