@@ -10,10 +10,10 @@ export class Ball {
         
         // Create Matter.js body for the ball
         this.body = Matter.Bodies.circle(x, y, this.radius, {
-            density: this.mass / (Math.PI * this.radius * this.radius), // Density = mass/area
-            friction: 0.4,
+            mass: this.mass, // Set mass directly instead of calculating density with Pi
+            friction: 0.2, // Reduced from 0.4 to 0.2 for better ball-to-ball bouncing
             frictionAir: 0.005,
-            restitution: 0.9,
+            restitution: 0.85, // Increased from 0.7 to 0.85 for better ball-to-ball bouncing
             render: {
                 fillStyle: this.color,
                 strokeStyle: '#ffffff',
@@ -23,8 +23,12 @@ export class Ball {
             label: 'ball'
         });
 
-        // Store the radius directly on the body for accurate rendering
+        // Ensure ball starts with zero angular velocity (no spin)
+        Matter.Body.setAngularVelocity(this.body, 0);
+
+        // Store the radius and size directly on the body for accurate rendering and debugging
         this.body.circleRadius = this.radius;
+        this.body.ballSize = this.size;
 
         // If this is the current ball, make it static (not affected by gravity)
         if (this.isCurrentBall) {
@@ -41,8 +45,10 @@ export class Ball {
     }
 
     calculateMass(size) {
-        // Mass proportional to size - cubic relationship for realistic physics
-        return size * size * size * 0.1;
+        // Use simple integer scaling to avoid floating-point precision issues
+        // Size 1: mass 1, Size 2: mass 2, Size 3: mass 3, Size 4: mass 4, Size 5: mass 5
+        // This eliminates the complex square root calculations that were causing physics inconsistencies
+        return size;
     }
 
     getColorForSize(size) {
@@ -86,10 +92,14 @@ export class Ball {
     // Release ball from static state (when dropped)
     release() {
         if (this.isCurrentBall) {
-            console.log('Releasing ball from static state');
             Matter.Body.setStatic(this.body, false);
+            // Ensure ball has no angular velocity when released (no spin)
+            Matter.Body.setAngularVelocity(this.body, 0);
+            
+            // CRITICAL: Ensure ball has zero horizontal velocity when released
+            Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
+            
             this.isCurrentBall = false;
-            console.log('Ball released and should now fall');
         }
     }
 
@@ -107,6 +117,7 @@ export class BallManager {
         this.lastDropTime = 0; // Track when last ball was dropped
         this.nextSpawnTime = 0; // When next ball should spawn
         this.gameState = 'ready'; // 'ready', 'dropping', 'waiting'
+        this.offScreenBalls = new Map(); // Track balls that went off-screen with timestamps
     }
 
     generateRandomSize() {
@@ -117,17 +128,13 @@ export class BallManager {
     spawnBall() {
         // Don't spawn if we already have a current ball
         if (this.currentBall) {
-            console.log('Cannot spawn - current ball already exists');
             return;
         }
         
         // Don't spawn if we're still waiting
         if (this.gameState === 'waiting' && performance.now() < this.nextSpawnTime) {
-            console.log('Cannot spawn - still waiting for spawn time');
             return;
         }
-        
-        console.log(`Spawning new ball with size ${this.nextBallSize}`);
         
         const x = 512; // Center of canvas (1024/2)
         const y = 50;  // Near top
@@ -143,22 +150,16 @@ export class BallManager {
         
         // Update UI
         this.updateUI();
-        
-        console.log(`Ball spawned successfully. Ready to drop.`);
     }
 
     dropCurrentBall() {
         if (!this.currentBall) {
-            console.log('No current ball to drop');
             return;
         }
 
         if (this.gameState !== 'ready') {
-            console.log('Cannot drop - not in ready state');
             return;
         }
-
-        console.log('Dropping current ball');
         
         // Release the ball from static state so gravity affects it
         this.currentBall.release();
@@ -175,14 +176,12 @@ export class BallManager {
         
         // Update UI to show waiting state
         this.updateUI();
-        
-        console.log('Ball dropped successfully. Next ball in 2 seconds.');
     }
 
     moveCurrentBall(direction) {
         if (!this.currentBall) return;
 
-        // For static balls (current ball), use position updates instead of forces
+        // Only allow movement of the current (static) ball - once dropped, only physics should affect it
         if (this.currentBall.isCurrentBall) {
             const currentPos = this.currentBall.getPosition();
             const moveDistance = 5; // Distance to move per frame
@@ -190,26 +189,15 @@ export class BallManager {
             
             // Keep within bounds (accounting for ball radius)
             const ballRadius = this.currentBall.radius;
-            const wallThickness = 17; // Updated wall thickness
+            const wallThickness = 16; // Updated wall thickness
             const minX = wallThickness + ballRadius;
             const maxX = 1024 - wallThickness - ballRadius;
             
             newX = Math.max(minX, Math.min(maxX, newX));
             
             this.currentBall.setPosition(newX, currentPos.y);
-        } else {
-            // For dropped balls, use force-based movement (if needed)
-            const moveForce = 0.002;
-            const maxSpeed = 5;
-            
-            // Apply horizontal force
-            let forceX = direction * moveForce;
-            
-            // Limit horizontal speed
-            if (Math.abs(this.currentBall.body.velocity.x) < maxSpeed) {
-                this.currentBall.applyForce(forceX, 0);
-            }
         }
+        // No else block - dropped balls should only be affected by gravity and collisions
     }
 
     updateUI() {
@@ -240,13 +228,43 @@ export class BallManager {
     }
 
     cleanup() {
-        // Remove balls that have fallen off screen or other cleanup
+        const now = performance.now();
+        const gracePeriod = 3000; // 3 seconds grace period for off-screen balls
+        const canvasWidth = 1024;
+        const canvasHeight = 768;
+        const maxOffScreenDistance = 200; // Allow balls to go this far off-screen before removal
+        
+        // Remove balls that have been off-screen too long or are too far away
         this.balls = this.balls.filter(ball => {
-            if (ball.getPosition().y > 800) { // Below canvas
-                ball.destroy();
-                return false;
+            const pos = ball.getPosition();
+            const isOffScreen = pos.y > canvasHeight + maxOffScreenDistance || 
+                               pos.x < -maxOffScreenDistance || 
+                               pos.x > canvasWidth + maxOffScreenDistance ||
+                               pos.y < -maxOffScreenDistance;
+            
+            if (isOffScreen) {
+                // Track when this ball first went off-screen
+                if (!this.offScreenBalls.has(ball)) {
+                    this.offScreenBalls.set(ball, now);
+                    return true; // Keep the ball for now
+                }
+                
+                // Check if grace period has expired
+                const offScreenTime = now - this.offScreenBalls.get(ball);
+                if (offScreenTime > gracePeriod) {
+                    this.offScreenBalls.delete(ball);
+                    ball.destroy();
+                    return false;
+                }
+                
+                return true; // Still within grace period
+            } else {
+                // Ball is back on screen, remove from off-screen tracking
+                if (this.offScreenBalls.has(ball)) {
+                    this.offScreenBalls.delete(ball);
+                }
+                return true;
             }
-            return true;
         });
     }
 }
