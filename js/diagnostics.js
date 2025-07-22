@@ -239,7 +239,7 @@ export class DiagnosticPanel {
                 ${ballData.length === 0 ? 'No balls in scene' : 
                   ballData.map((ball, i) => `
                     <div style="margin-bottom: 2px; font-size: 11px; ${ball.isHighVelocity ? 'color: #ff4444' : ''}">
-                      Ball ${i + 1}${ball.isCurrentBall ? ' (CURRENT)' : ''}: Size ${ball.size} | Mass ${ball.mass.toFixed(1)} | Speed ${ball.speed.toFixed(1)} | Pos (${ball.position.x.toFixed(0)},${ball.position.y.toFixed(0)}) | Vel (${ball.velocity.x.toFixed(3)},${ball.velocity.y.toFixed(3)}) | AngVel ${ball.angularVelocity.toFixed(3)}${ball.isHighVelocity ? ' ⚠️ HIGH SPEED' : ''}${ball.isOffScreen ? ' 🔴 OFF-SCREEN' : ''}
+                      Ball ${i + 1}: Size ${ball.size} | Mass ${ball.mass.toFixed(1)} | Speed ${ball.speed.toFixed(1)} | Pos (${ball.position.x.toFixed(0)},${ball.position.y.toFixed(0)}) | Vel (${ball.velocity.x.toFixed(3)},${ball.velocity.y.toFixed(3)}) | AngVel ${ball.angularVelocity.toFixed(3)}${ball.isHighVelocity ? ' ⚠️ HIGH SPEED' : ''}${ball.isOffScreen ? ' 🔴 OFF-SCREEN' : ''}
                     </div>
                   `).join('')}
             </div>
