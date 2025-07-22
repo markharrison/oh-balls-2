@@ -24,9 +24,8 @@ export class DiagnosticPanel {
             position: fixed;
             top: 10px;
             right: 10px;
-            left: 10px;
-            width: calc(100vw - 20px);
-            height: 500px;
+            width: 675px;
+            height: calc(100vh - 20px);
             background: rgba(0, 0, 0, 0.9);
             color: #00ff00;
             font-family: 'Courier New', monospace;
