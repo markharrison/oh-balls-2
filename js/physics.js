@@ -221,6 +221,16 @@ export class PhysicsEngine {
                         console.log(`Ball velocity set to rest (was ${Math.sqrt(velocityMagnitudeSquared).toFixed(4)}) - Note: Events repeat due to gravity/physics forces`);
                     }
                 }
+                
+                // If angular velocity is very small, set to zero to prevent micro-oscillations
+                const angularVelocity = body.angularVelocity;
+                if (Math.abs(angularVelocity) > 0 && Math.abs(angularVelocity) < restThreshold) {
+                    Matter.Body.setAngularVelocity(body, 0);
+                    // Only log this very occasionally to avoid spam
+                    if (Math.random() < 0.001) { // Log ~0.1% of angular rest dampening events
+                        console.log(`Ball angular velocity set to rest (was ${angularVelocity.toFixed(4)}) - Note: Events repeat due to physics forces`);
+                    }
+                }
                 // If velocity exceeds maximum, scale it down
                 else if (velocityMagnitudeSquared > maxVelocitySquared) {
                     const velocityMagnitude = Math.sqrt(velocityMagnitudeSquared);
