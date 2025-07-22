@@ -23,7 +23,7 @@ export class PhysicsEngine {
             this.handleMassImbalancedCollisions();
         });
         
-        // Track ground collisions to debug angular velocity generation
+        // Track ground collisions and fix unwanted angular velocity for straight drops
         Matter.Events.on(this.engine, 'collisionStart', (event) => {
             event.pairs.forEach(pair => {
                 const bodyA = pair.bodyA;
@@ -43,17 +43,22 @@ export class PhysicsEngine {
                     // Schedule to check angular velocity after collision is processed
                     setTimeout(() => {
                         const postAngularVel = ball.angularVelocity;
-                        if (Math.abs(postAngularVel) > 0.005) { // Lower threshold to catch smaller angular velocities
+                        if (Math.abs(postAngularVel) > 0.001) { // Even lower threshold to catch tiny angular velocities
                             // Analyze the potential causes
                             const horizontalSpeed = Math.abs(velocity.x);
                             const verticalSpeed = Math.abs(velocity.y);
                             
-                            // Check if horizontal velocity is truly zero or just very small
+                            // Check if this was essentially a straight drop with tiny horizontal velocity due to numerical errors
                             let analysis = '';
+                            let shouldCancelSpin = false;
+                            
                             if (horizontalSpeed < 0.001) {
-                                analysis = 'ZERO horizontal velocity - should not cause spin!';
-                            } else if (horizontalSpeed < 0.1) {
-                                analysis = `Tiny horizontal velocity (${velocity.x.toFixed(6)}) causing spin`;
+                                analysis = 'ZERO horizontal velocity - should not cause spin! (numerical precision issue)';
+                                shouldCancelSpin = true;
+                            } else if (horizontalSpeed < 0.8) {
+                                // Small horizontal velocity likely caused by numerical precision errors in straight drops
+                                analysis = `Tiny horizontal velocity (${velocity.x.toFixed(6)}) likely from numerical precision - canceling unwanted spin`;
+                                shouldCancelSpin = true;
                             } else {
                                 analysis = `Horizontal velocity (${velocity.x.toFixed(3)}) causing expected spin`;
                             }
@@ -63,6 +68,12 @@ export class PhysicsEngine {
                             console.log(`   Velocity: (${velocity.x.toFixed(6)}, ${velocity.y.toFixed(3)}) H:${horizontalSpeed.toFixed(6)} V:${verticalSpeed.toFixed(1)}`);
                             console.log(`   Angular: ${preAngularVel.toFixed(6)} -> ${postAngularVel.toFixed(6)} (${postAngularVel > 0 ? 'CCW' : 'CW'})`);
                             console.log(`   Analysis: ${analysis}`);
+                            
+                            // Cancel unwanted angular velocity for essentially straight drops
+                            if (shouldCancelSpin) {
+                                Matter.Body.setAngularVelocity(ball, 0);
+                                console.log(`   🔧 Action: Angular velocity reset to 0 (was ${postAngularVel.toFixed(6)})`);
+                            }
                         }
                     }, 1);
                 }
