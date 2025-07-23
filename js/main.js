@@ -1,5 +1,5 @@
 // Main Game Controller
-import { PhysicsEngine } from './physics.js';
+import { SceneManager } from './scene.js';
 import { BallManager } from './ball.js';
 import { InputHandler } from './input.js';
 import { DiagnosticPanel } from './diagnostics.js';
@@ -10,8 +10,8 @@ class Game {
         this.running = false;
         
         // Initialize core systems
-        this.physicsEngine = new PhysicsEngine(this.canvas);
-        this.ballManager = new BallManager(this.physicsEngine);
+        this.sceneManager = new SceneManager(this.canvas);
+        this.ballManager = new BallManager(this.sceneManager);
         this.inputHandler = new InputHandler(this.ballManager);
         this.diagnostics = new DiagnosticPanel(this);
         
@@ -22,65 +22,40 @@ class Game {
         };
     }
 
-    init() {
-        // Start physics engine
-        this.physicsEngine.start();
-        
-        // Spawn first ball
-        this.ballManager.spawnBall();
-        
-        // Start game loop
-        this.start();
-    }
-
     start() {
         if (this.running) return;
+        this.sceneManager.start();
         
+        this.ballManager.start();
         this.running = true;
         this.gameLoop();
     }
 
     stop() {
         this.running = false;
-        this.physicsEngine.stop();
+        this.sceneManager.stop();
     }
 
     gameLoop() {
         if (!this.running) return;
 
-        const currentTime = performance.now();
-        this.updateClock(currentTime);
-        
-        // Update game systems
-        this.update();
-        
-        // Schedule next frame
+             this.updateFrame();
+       
         requestAnimationFrame(() => this.gameLoop());
     }
 
-    updateClock(currentTime) {
+    updateFrame() {
+        const currentTime = performance.now();
         const lastTime = this.clock.currentTime;
         this.clock.currentTime = currentTime;
         this.clock.deltaTime = this.clock.currentTime - lastTime;
-        
-        // Handle first frame or prevent large jumps
-        if (this.clock.deltaTime <= 0 || this.clock.deltaTime > 16.0) {
-            this.clock.deltaTime = 16.0; // Stay safely under 16.667ms limit
-        }
-    }
 
-    update() {
-        // Update input handling
-        this.inputHandler.update();
+        this.inputHandler.getInput();
+
+        this.sceneManager.updateFrame(this.clock.deltaTime);
+
+        this.ballManager.updateFrame();
         
-        // Update physics engine with frame-rate independent timing
-        this.physicsEngine.update(this.clock.deltaTime);
-        
-        // Update ball manager (spawning logic, UI updates, etc.)
-        this.ballManager.update();
-        
-        // Clean up balls that have fallen off screen
-        this.ballManager.cleanup();
     }
 
     // Debug methods
@@ -111,8 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create global game instance
     window.game = new Game();
     
-    // Initialize the game
-    window.game.init();
+    window.game.start();
     
     // Add debug command to console
     window.gameDebug = () => {
