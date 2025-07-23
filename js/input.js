@@ -75,7 +75,7 @@ export class InputHandler {
         this.ballManager.dropCurrentBall();
     }
 
-    update() {
+    getInput() {
         // Process continuous input (called every frame)
         if (this.keys.left) {
             this.ballManager.moveCurrentBall(-1); // Move left

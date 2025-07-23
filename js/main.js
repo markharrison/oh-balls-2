@@ -22,20 +22,11 @@ class Game {
         };
     }
 
-    init() {
-        // Start scene manager
-        this.sceneManager.start();
-        
-        // Spawn first ball
-        this.ballManager.spawnBall();
-        
-        // Start game loop
-        this.start();
-    }
-
     start() {
         if (this.running) return;
+        this.sceneManager.start();
         
+        this.ballManager.start();
         this.running = true;
         this.gameLoop();
     }
@@ -48,39 +39,23 @@ class Game {
     gameLoop() {
         if (!this.running) return;
 
-        const currentTime = performance.now();
-        this.updateClock(currentTime);
-        
-        // Update game systems
-        this.update();
-        
-        // Schedule next frame
+             this.updateFrame();
+       
         requestAnimationFrame(() => this.gameLoop());
     }
 
-    updateClock(currentTime) {
+    updateFrame() {
+        const currentTime = performance.now();
         const lastTime = this.clock.currentTime;
         this.clock.currentTime = currentTime;
         this.clock.deltaTime = this.clock.currentTime - lastTime;
-        
-        // Handle first frame or prevent large jumps
-        if (this.clock.deltaTime <= 0 || this.clock.deltaTime > 16.0) {
-            this.clock.deltaTime = 16.0; // Stay safely under 16.667ms limit
-        }
-    }
 
-    update() {
-        // Update input handling
-        this.inputHandler.update();
+        this.inputHandler.getInput();
+
+        this.sceneManager.updateFrame(this.clock.deltaTime);
+
+        this.ballManager.updateFrame();
         
-        // Update scene manager with frame-rate independent timing
-        this.sceneManager.update(this.clock.deltaTime);
-        
-        // Update ball manager (spawning logic, UI updates, etc.)
-        this.ballManager.update();
-        
-        // Clean up balls that have fallen off screen
-        this.ballManager.cleanup();
     }
 
     // Debug methods
@@ -111,8 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create global game instance
     window.game = new Game();
     
-    // Initialize the game
-    window.game.init();
+    window.game.start();
     
     // Add debug command to console
     window.gameDebug = () => {

@@ -254,7 +254,7 @@ export class SceneManager {
         ctx.restore();
     }
 
-    update(deltaTime) {
+    updateFrame(deltaTime) {
         // Ensure deltaTime is within Matter.js recommended bounds (≤ 16.667ms for 60fps)
         const clampedDelta = Math.min(Math.max(deltaTime, 8), 16.0); // Keep safely under 16.667ms
         

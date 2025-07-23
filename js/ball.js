@@ -119,7 +119,9 @@ export class BallManager {
         this.gameState = 'ready'; // 'ready', 'dropping', 'waiting'
         this.offScreenBalls = new Map(); // Track balls that went off-screen with timestamps
     }
-
+    start() {
+        this.spawnBall();
+    }
     generateRandomSize() {
         // Random size from 1 to 5 as specified
         return Math.floor(Math.random() * 5) + 1;
@@ -216,11 +218,12 @@ export class BallManager {
     }
 
     // Called every frame to check if we should spawn a new ball
-    update() {
+    updateFrame() {
         // Check if we should spawn a new ball
         if (this.gameState === 'waiting' && !this.currentBall && performance.now() >= this.nextSpawnTime) {
             this.spawnBall();
         }
+        this.cleanup();
     }
 
     getAllBalls() {
