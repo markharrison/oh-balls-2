@@ -1,5 +1,5 @@
 // Main Game Controller
-import { PhysicsEngine } from './physics.js';
+import { SceneManager } from './scene.js';
 import { BallManager } from './ball.js';
 import { InputHandler } from './input.js';
 import { DiagnosticPanel } from './diagnostics.js';
@@ -10,8 +10,8 @@ class Game {
         this.running = false;
         
         // Initialize core systems
-        this.physicsEngine = new PhysicsEngine(this.canvas);
-        this.ballManager = new BallManager(this.physicsEngine);
+        this.sceneManager = new SceneManager(this.canvas);
+        this.ballManager = new BallManager(this.sceneManager);
         this.inputHandler = new InputHandler(this.ballManager);
         this.diagnostics = new DiagnosticPanel(this);
         
@@ -23,8 +23,8 @@ class Game {
     }
 
     init() {
-        // Start physics engine
-        this.physicsEngine.start();
+        // Start scene manager
+        this.sceneManager.start();
         
         // Spawn first ball
         this.ballManager.spawnBall();
@@ -42,7 +42,7 @@ class Game {
 
     stop() {
         this.running = false;
-        this.physicsEngine.stop();
+        this.sceneManager.stop();
     }
 
     gameLoop() {
@@ -73,8 +73,8 @@ class Game {
         // Update input handling
         this.inputHandler.update();
         
-        // Update physics engine with frame-rate independent timing
-        this.physicsEngine.update(this.clock.deltaTime);
+        // Update scene manager with frame-rate independent timing
+        this.sceneManager.update(this.clock.deltaTime);
         
         // Update ball manager (spawning logic, UI updates, etc.)
         this.ballManager.update();

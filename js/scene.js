@@ -1,5 +1,5 @@
-// Physics Engine Module using Matter.js
-export class PhysicsEngine {
+// Scene Manager Module using Matter.js
+export class SceneManager {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');

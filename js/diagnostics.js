@@ -48,7 +48,7 @@ export class DiagnosticPanel {
 
     setupCollisionTracking() {
         // Listen for collision events
-        Matter.Events.on(this.game.physicsEngine.engine, 'collisionStart', (event) => {
+        Matter.Events.on(this.game.sceneManager.engine, 'collisionStart', (event) => {
             event.pairs.forEach(pair => {
                 const bodyA = pair.bodyA;
                 const bodyB = pair.bodyB;
@@ -279,6 +279,6 @@ export class DiagnosticPanel {
         }
         
         // Remove event listeners
-        Matter.Events.off(this.game.physicsEngine.engine, 'collisionStart');
+        Matter.Events.off(this.game.sceneManager.engine, 'collisionStart');
     }
 }

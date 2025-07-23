@@ -1,7 +1,7 @@
 // Ball Module for creating and managing balls
 export class Ball {
-    constructor(physicsEngine, x, y, size, isCurrentBall = false) {
-        this.physicsEngine = physicsEngine;
+    constructor(sceneManager, x, y, size, isCurrentBall = false) {
+        this.sceneManager = sceneManager;
         this.size = size;
         this.radius = this.calculateRadius(size);
         this.mass = this.calculateMass(size);
@@ -35,8 +35,8 @@ export class Ball {
             Matter.Body.setStatic(this.body, true);
         }
 
-        // Add to physics world
-        this.physicsEngine.addBody(this.body);
+        // Add to scene
+        this.sceneManager.addBody(this.body);
     }
 
     calculateRadius(size) {
@@ -104,13 +104,13 @@ export class Ball {
     }
 
     destroy() {
-        this.physicsEngine.removeBody(this.body);
+        this.sceneManager.removeBody(this.body);
     }
 }
 
 export class BallManager {
-    constructor(physicsEngine) {
-        this.physicsEngine = physicsEngine;
+    constructor(sceneManager) {
+        this.sceneManager = sceneManager;
         this.balls = [];
         this.currentBall = null; // Ball being controlled by player
         this.nextBallSize = this.generateRandomSize();
@@ -139,7 +139,7 @@ export class BallManager {
         const x = 512; // Center of canvas (1024/2)
         const y = 50;  // Near top
         
-        this.currentBall = new Ball(this.physicsEngine, x, y, this.nextBallSize, true);
+        this.currentBall = new Ball(this.sceneManager, x, y, this.nextBallSize, true);
         this.balls.push(this.currentBall);
         
         // Generate next ball size for UI display
