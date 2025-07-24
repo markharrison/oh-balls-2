@@ -73,6 +73,7 @@ export class DiagnosticPanel {
             const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
             const position = ball.getPosition();
             const mass = ball.body.mass;
+            const verticalDrop = ball.verticalDrop;
 
             return {
                 size: ball.size,
@@ -81,6 +82,7 @@ export class DiagnosticPanel {
                 velocity,
                 angularVelocity,
                 speed,
+                verticalDrop,
             };
         });
 
@@ -90,7 +92,6 @@ export class DiagnosticPanel {
                 Running: ${gameState.running}<br>
                 Balls: ${gameState.ballCount}<br>
                 Current Ball: ${gameState.currentBall}<br>
-                Next Size: ${gameState.nextBallSize}<br>
                 Delta Time: ${gameState.deltaTime.toFixed(2)}ms<br>
                 FPS: ${(1000 / gameState.deltaTime).toFixed(1)}
             </div>
@@ -108,9 +109,9 @@ export class DiagnosticPanel {
                                       ball.size
                                   } | Mass ${ball.mass.toFixed(
                                       1
-                                  )} | Speed ${ball.speed.toFixed(
-                                      1
-                                  )} | Pos (${ball.position.x.toFixed(
+                                  )} | Speed ${ball.speed.toFixed(1)} | ${
+                                      ball.verticalDrop ? 'V' : ' '
+                                  } | Pos (${ball.position.x.toFixed(
                                       0
                                   )},${ball.position.y.toFixed(
                                       0
@@ -118,9 +119,7 @@ export class DiagnosticPanel {
                                       3
                                   )},${ball.velocity.y.toFixed(
                                       3
-                                  )}) | AngVel ${ball.angularVelocity.toFixed(
-                                      3
-                                  )}
+                                  )}) ${ball.angularVelocity.toFixed(3)} |
                     </div>
                   `
                               )
