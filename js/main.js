@@ -55,6 +55,9 @@ class Game {
         this.sceneManager.updateFrame(this.clock.deltaTime);
 
         this.ballManager.updateFrame();
+
+        // Update diagnostics if enabled
+        this.diagnostics.updateFrame();
     }
 
     // Debug methods

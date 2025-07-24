@@ -8,7 +8,6 @@ export class Ball {
         this.color = this.getColorForSize(size);
         this.isCurrentBall = isCurrentBall;
 
-        // Create Matter.js body for the ball
         this.body = Matter.Bodies.circle(x, y, this.radius, {
             mass: this.mass,
             friction: 0.2,
