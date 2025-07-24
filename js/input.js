@@ -5,12 +5,12 @@ export class InputHandler {
         this.keys = {
             left: false,
             right: false,
-            drop: false
+            drop: false,
         };
-        
+
         // Track key press state to prevent key repeat issues
         this.keyPressed = {
-            drop: false
+            drop: false,
         };
 
         this.setupEventListeners();
@@ -28,7 +28,11 @@ export class InputHandler {
 
         // Prevent default behavior for arrow keys to avoid page scrolling
         document.addEventListener('keydown', (event) => {
-            if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'Space'].includes(event.code)) {
+            if (
+                ['ArrowLeft', 'ArrowRight', 'ArrowDown', 'Space'].includes(
+                    event.code
+                )
+            ) {
                 event.preventDefault();
             }
         });
@@ -80,7 +84,7 @@ export class InputHandler {
         if (this.keys.left) {
             this.ballManager.moveCurrentBall(-1); // Move left
         }
-        
+
         if (this.keys.right) {
             this.ballManager.moveCurrentBall(1); // Move right
         }
