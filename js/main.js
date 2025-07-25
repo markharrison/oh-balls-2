@@ -64,7 +64,7 @@ class Game {
     getGameState() {
         return {
             running: this.running,
-            ballCount: this.ballManager.getAllBalls().length,
+            ballCount: this.ballManager.balls.length,
             currentBall: this.ballManager.currentBall ? true : false,
             nextBallSize: this.ballManager.nextBallSize,
             deltaTime: this.clock.deltaTime,

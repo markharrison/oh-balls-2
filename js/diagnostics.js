@@ -64,7 +64,7 @@ export class DiagnosticPanel {
         if (!content) return;
 
         const gameState = this.game.getGameState();
-        const balls = this.game.ballManager.getAllBalls();
+        const balls = this.game.ballManager.balls;
 
         // Collect ball data
         const ballData = balls.map((ball) => {
@@ -109,7 +109,8 @@ export class DiagnosticPanel {
                                       ball.size
                                   } | Mass ${ball.mass.toFixed(
                                       1
-                                  )} | Speed ${ball.speed.toFixed(1)} | ${
+                                  )} | Speed ${ball.speed.toFixed(8)} 
+                                  | ${
                                       ball.verticalDrop ? 'V' : ' '
                                   } | Pos (${ball.position.x.toFixed(
                                       0
@@ -119,7 +120,7 @@ export class DiagnosticPanel {
                                       3
                                   )},${ball.velocity.y.toFixed(
                                       3
-                                  )}) ${ball.angularVelocity.toFixed(3)} |
+                                  )}) ${ball.angularVelocity.toFixed(6)} |
                     </div>
                   `
                               )

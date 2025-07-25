@@ -6,15 +6,10 @@ export class SceneManager {
         this.engine = Matter.Engine.create();
         this.world = this.engine.world;
 
-        // Don't use Matter.js renderer, we'll render manually
         this.render = null;
 
-        // Set up physics properties for stable simulation
         this.engine.world.gravity.y = 0.8;
         this.engine.timing.timeScale = 1;
-
-        // Use default engine precision - positionIterations: 6, velocityIterations: 4
-        // (Engine precision improvements didn't fix the ball radius-specific bounce issues)
 
         this.setupBoundaries();
 
@@ -22,99 +17,11 @@ export class SceneManager {
     }
 
     setupEventHandlers() {
-        // Add collision event handling for mass-imbalanced collisions
-        // Matter.Events.on(this.engine, 'afterUpdate', () => {
-        //     this.handleMassImbalancedCollisions();
-        // });
-
-        // Track ball speeds before collision processing
-        // Matter.Events.on(this.engine, 'beforeUpdate', () => {
-        //     // Store pre-collision speeds for comparison
-        //     const bodies = Matter.Composite.allBodies(this.world);
-        //     bodies.forEach((body) => {
-        //         if (body.label === 'ball' && !body.isStatic) {
-        //             body.preCollisionSpeed = Math.sqrt(
-        //                 body.velocity.x * body.velocity.x +
-        //                     body.velocity.y * body.velocity.y
-        //             );
-        //         }
-        //     });
-        // });
-
         // Ball-ground collision events
         this.setupEventsBallGroundCollision();
 
         // Ball-ball collision events to track vertical drop state
         this.setupEventsBallBallCollision();
-
-        // Track ground collisions and fix unwanted angular velocity for straight drops
-        // Matter.Events.on(this.engine, 'collisionStart', (event) => {
-        //     event.pairs.forEach(pair => {
-        //         const bodyA = pair.bodyA;
-        //         const bodyB = pair.bodyB;
-
-        //         // Check for ball-ground collisions
-        //         const ball = bodyA.label === 'ball' ? bodyA : (bodyB.label === 'ball' ? bodyB : null);
-        //         const ground = bodyA.label === 'ground' ? bodyA : (bodyB.label === 'ground' ? bodyB : null);
-
-        //         if (ball && ground) {
-        //             // VERTICAL COLLISION DETECTION
-        //             const velocity = ball.velocity;
-        //             const horizontalSpeed = Math.abs(velocity.x);
-        //             const verticalSpeed = Math.abs(velocity.y);
-
-        //             // Detect if this should be a "vertical" collision based on initial drop conditions
-        //             // If horizontal speed is much smaller than vertical speed, this should be purely vertical
-        //             const isVerticalCollision = horizontalSpeed < Math.max(1.0, verticalSpeed * 0.1);
-
-        //             if (isVerticalCollision) {
-        //                 Matter.Body.setVelocity(ball, { x: 0, y: velocity.y });
-        //             }
-
-        //             // Schedule to check angular velocity and horizontal movement after collision is processed
-        //             setTimeout(() => {
-        //                 const postAngularVel = ball.angularVelocity;
-        //                 const postVelocity = ball.velocity;
-        //                 const preHorizontalSpeed = Math.abs(velocity.x);
-        //                 const postHorizontalSpeed = Math.abs(postVelocity.x);
-
-        //                 // VERTICAL COLLISION POST-PROCESSING
-        //                 // If this was identified as a vertical collision, ensure the post-collision velocity is also vertical
-        //                 if (isVerticalCollision) {
-        //                     if (Math.abs(postVelocity.x) > 0.001) {
-        //                         Matter.Body.setVelocity(ball, { x: 0, y: postVelocity.y });
-        //                     }
-
-        //                     // Also ensure no angular velocity for vertical bounces
-        //                     if (Math.abs(postAngularVel) > 0.001) {
-        //                         Matter.Body.setAngularVelocity(ball, 0);
-        //                     }
-        //                 }
-
-        //                 // Check for unwanted angular velocity generation
-        //                 if (Math.abs(postAngularVel) > 0.001) {
-        //                     let shouldCancelSpin = false;
-
-        //                     if (preHorizontalSpeed < 0.001) {
-        //                         shouldCancelSpin = true;
-        //                     } else if (preHorizontalSpeed < 0.8) {
-        //                         shouldCancelSpin = true;
-        //                     }
-
-        //                     // Cancel unwanted angular velocity for essentially straight drops
-        //                     if (shouldCancelSpin) {
-        //                         Matter.Body.setAngularVelocity(ball, 0);
-        //                     }
-        //                 }
-
-        //                 // Check for unwanted horizontal velocity generation
-        //                 if (preHorizontalSpeed < 0.001 && postHorizontalSpeed > 0.1) {
-        //                     Matter.Body.setVelocity(ball, { x: 0, y: postVelocity.y });
-        //                 }
-        //             }, 1);
-        //         }
-        //     });
-        // });
     }
 
     setupEventsBallBallCollision() {
@@ -137,62 +44,6 @@ export class SceneManager {
     }
 
     setupEventsBallGroundCollision() {
-        // BEFORE collision (collisionStart event)
-        Matter.Events.on(this.engine, 'collisionStart', (event) => {
-            event.pairs.forEach((pair) => {
-                const bodyA = pair.bodyA;
-                const bodyB = pair.bodyB;
-
-                // Check for ball-ground collisions
-                const ball =
-                    bodyA.label === 'ball'
-                        ? bodyA
-                        : bodyB.label === 'ball'
-                        ? bodyB
-                        : null;
-                const ground =
-                    bodyA.label === 'ground'
-                        ? bodyA
-                        : bodyB.label === 'ground'
-                        ? bodyB
-                        : null;
-
-                if (ball && ground) {
-                    // Mark that this ball has collided with ground
-                    //this.onBallGroundCollisionStart(ball, ground, pair);
-                }
-            });
-        });
-
-        // DURING collision (collisionActive event - fires continuously while objects are touching)
-        Matter.Events.on(this.engine, 'collisionActive', (event) => {
-            event.pairs.forEach((pair) => {
-                const bodyA = pair.bodyA;
-                const bodyB = pair.bodyB;
-
-                // Check for ball-ground collisions
-                const ball =
-                    bodyA.label === 'ball'
-                        ? bodyA
-                        : bodyB.label === 'ball'
-                        ? bodyB
-                        : null;
-                const ground =
-                    bodyA.label === 'ground'
-                        ? bodyA
-                        : bodyB.label === 'ground'
-                        ? bodyB
-                        : null;
-
-                if (ball && ground) {
-                    // Ball is actively colliding with ground
-                    ball.isCollidingWithGround = true;
-                    //this.onBallGroundCollisionActive(ball, ground, pair);
-                }
-            });
-        });
-
-        // AFTER collision (collisionEnd event)
         Matter.Events.on(this.engine, 'collisionEnd', (event) => {
             event.pairs.forEach((pair) => {
                 const bodyA = pair.bodyA;
@@ -213,9 +64,7 @@ export class SceneManager {
                         : null;
 
                 if (ball && ground) {
-                    // Ball has stopped colliding with ground
-                    ball.isCollidingWithGround = false;
-                    //this.onBallGroundCollisionEnd(ball, ground, pair);
+                    ball.ballInstance.keepOnVerticalDrop();
                 }
             });
         });
@@ -484,7 +333,7 @@ export class SceneManager {
         for (let i = 0; i < steps; i++) {
             Matter.Engine.update(this.engine, actualStepSize);
             // Apply jittering fix after each physics step to be more aggressive
-            this.stopJittering();
+
         }
 
         //this.clampVelocities();
@@ -492,40 +341,7 @@ export class SceneManager {
         this.renderScene();
     }
 
-    stopJittering() {
-        const bodies = Matter.Composite.allBodies(this.world);
 
-        bodies.forEach((body) => {
-            if (body.label === 'ball' && !body.isStatic) {
-                const speedSquared =
-                    body.velocity.x * body.velocity.x +
-                    body.velocity.y * body.velocity.y;
-
-                if (speedSquared < 0.01) {
-                    Matter.Body.setVelocity(body, { x: 0, y: 0 });
-
-                    body.force.x = 0;
-                    body.force.y = 0;
-                }
-
-                // Also check for very slow horizontal drift specifically
-                if (Math.abs(body.velocity.x) < 0.05) {
-                    // Ball is drifting horizontally very slowly - stop it
-                    Matter.Body.setVelocity(body, { x: 0, y: body.velocity.y });
-                    body.force.x = 0; // Clear horizontal forces
-                }
-
-                // Stop angular motion and torque
-                if (Math.abs(body.angularVelocity) < 0.05) {
-                    // Increased threshold
-                    Matter.Body.setAngularVelocity(body, 0);
-
-                    // Clear accumulated torque that could cause micro-rotations
-                    body.torque = 0;
-                }
-            }
-        });
-    }
 
     // clampVelocities() {
     //     // Maximum velocity to prevent balls from moving so fast they disappear

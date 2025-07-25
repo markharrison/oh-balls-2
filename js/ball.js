@@ -31,8 +31,8 @@ export class Ball {
         this.body.ballInstance = this;
 
         // Game logic properties belong on the Ball instance, not the physics body
-        this.verticalDrop = true;
-        this.verticalDropXCoordinate = 0;
+        this.verticalDrop = false;
+        this.verticalDropXCoordinate = 512;
         Matter.Body.setStatic(this.body, true);
 
         // Add to scene
@@ -41,12 +41,12 @@ export class Ball {
 
     generateRandomSize() {
         // Random size from 1 to 5 as specified
-        return Math.floor(Math.random() * 5) + 1;
+        return Math.floor(Math.random() * 10) + 1;
     }
 
     calculateRadius(size) {
         // Size 1 = radius 15, size 15 = radius 60
-        return 15 + (size - 1) * 3;
+        return 15 + (size - 1) * 5;
     }
 
     calculateMass(size) {
@@ -88,6 +88,10 @@ export class Ball {
 
     setPosition(x, y) {
         Matter.Body.setPosition(this.body, { x, y });
+        // console.log('  -> SetPosition:', {
+        //     x: this.body.position.x,
+        //     y: this.body.position.y,
+        // });
     }
 
     keepOnVerticalDrop() {
@@ -98,9 +102,13 @@ export class Ball {
                 this.verticalDropXCoordinate,
                 this.body.position.y
             );
-
-            console.log('  -> keepOnVerticalDrop:', { id: this.body.id });
         }
+
+        //     console.log('  -> keepOnVerticalDrop:', {
+        //         id: this.body.id,
+        //         x: this.body.position.x,
+        //         y: this.body.position.y,
+        //     });
     }
 
     applyForce(x, y) {
@@ -114,8 +122,7 @@ export class Ball {
         Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
 
         this.verticalDropXCoordinate = this.body.position.x;
-
-        this.isCurrentBall = false;
+        this.verticalDrop = true;
     }
 
     destroy() {
@@ -127,9 +134,10 @@ export class BallManager {
     constructor(sceneManager) {
         this.sceneManager = sceneManager;
         this.balls = [];
-        this.currentBall = null; // Ball being controlled by player
-        this.nextSpawnTime = performance.now(); // When next ball should spawn
-        this.offScreenBalls = new Map(); // Track balls that went off-screen with timestamps
+        this.currentBall = null;
+        this.nextSpawnTime = performance.now();
+        this.jitterTime = 0;
+        this.offScreenBalls = new Map();
     }
     start() {
         this.spawnBall();
@@ -158,7 +166,8 @@ export class BallManager {
 
         this.currentBall.release();
 
-        this.nextSpawnTime = performance.now() + 2000; // 2 seconds from now
+        this.nextSpawnTime = performance.now() + 2000;
+        this.jitterTime = performance.now() + 10000;
 
         // Release the ball from player control
         this.currentBall = null;
@@ -199,14 +208,55 @@ export class BallManager {
     }
 
     updateBallStates() {
-        // Handle vertical drop logic for all balls
-        // this.balls.forEach((ball) => {
-        //     // Check if ball has collided with another ball
-        // });
+        this.balls.forEach((ball) => {
+            ball.keepOnVerticalDrop();
+        });
+
+        this.stopJittering();
     }
 
-    getAllBalls() {
-        return this.balls;
+    // getAllBalls() {
+    //     return this.balls;
+    // }
+
+    stopJittering() {
+        if (this.jitterTime == 0 || performance.now() < this.jitterTime) {
+            return;
+        }
+
+        // console.log(
+        //     'Stopping jittering for all balls { time: ' +
+        //         performance.now() +
+        //         ', dropballtime: ' +
+        //         this.jitterTime +
+        //         ' }'
+        // );
+
+        this.balls.forEach((ball) => {
+            const body = ball.body;
+
+            if (body.label === 'ball' && !body.isStatic) {
+                const speedSquared =
+                    body.velocity.x * body.velocity.x +
+                    body.velocity.y * body.velocity.y;
+
+                // Stop micro-movements: only stop balls that are moving very slowly
+                if (speedSquared < 0.01 && speedSquared > 0) {
+                    Matter.Body.setVelocity(body, { x: 0, y: 0 });
+                    body.force.x = 0;
+                    body.force.y = 0;
+                }
+
+                // Check angular velocity separately and stop if it's very small
+                if (
+                    Math.abs(body.angularVelocity) < 0.01 &&
+                    Math.abs(body.angularVelocity) > 0
+                ) {
+                    Matter.Body.setAngularVelocity(body, 0);
+                    body.torque = 0;
+                }
+            }
+        });
     }
 
     cleanup() {
