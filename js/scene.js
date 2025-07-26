@@ -16,7 +16,14 @@ export class SceneManager {
 
         this.clock = {
             deltaTime: 0,
+            stepTime: 0,
+            steps: 0,
             currentTime: 0,
+            lastStatsUpdate: 0,
+            cachedStepTime: 0,
+            cachedSteps: 0,
+            cachedDeltaTime: 0,
+            cachedFPS: 0,
         };
 
         this.ballManager = new BallManager(this);
@@ -26,14 +33,25 @@ export class SceneManager {
         this.setupBoundaries();
 
         this.setupEventHandlers();
+
+        // Cache for diagnostics display
     }
 
     getSceneStateHtml() {
+        const now = performance.now();
+        if (now - this.clock.lastStatsUpdate > 500) {
+            this.clock.cachedDeltaTime = this.clock.deltaTime;
+            this.clock.cachedFPS = 1000 / this.clock.deltaTime;
+            this.clock.cachedStepTime = this.clock.stepTime;
+            this.clock.cachedSteps = this.clock.steps;
+            this.clock.lastStatsUpdate = now;
+        }
         const vHtml = `
             <strong>Scene State</strong><br>
-            Balls: ${this.ballManager.balls.length}<br>
-            Delta Time: ${this.clock.deltaTime.toFixed(2)}ms<br>
-            FPS: ${(1000 / this.clock.deltaTime).toFixed(1)}<br>
+            Balls: ${this.ballManager.getBallBodies().length}<br>
+            Delta Time: ${this.clock.cachedDeltaTime.toFixed(2)}ms,&nbsp;
+            Step Time: ${this.clock.cachedStepTime.toFixed(2)}ms x ${this.clock.cachedSteps},&nbsp;
+            FPS: ${this.clock.cachedFPS.toFixed(1)}<br>
         `;
         return vHtml;
     }
@@ -67,18 +85,8 @@ export class SceneManager {
                 const bodyB = pair.bodyB;
 
                 // Check for ball-ground collisions
-                const ball =
-                    bodyA.label === 'ball'
-                        ? bodyA
-                        : bodyB.label === 'ball'
-                        ? bodyB
-                        : null;
-                const ground =
-                    bodyA.label === 'ground'
-                        ? bodyA
-                        : bodyB.label === 'ground'
-                        ? bodyB
-                        : null;
+                const ball = bodyA.label === 'ball' ? bodyA : bodyB.label === 'ball' ? bodyB : null;
+                const ground = bodyA.label === 'ground' ? bodyA : bodyB.label === 'ground' ? bodyB : null;
 
                 if (ball && ground) {
                     //                   ball.ballInstance.keepOnVerticalDrop();
@@ -93,59 +101,41 @@ export class SceneManager {
         const height = 768;
 
         // Create walls (floor, left, right) - no ceiling to allow ball dropping
-        const ground = Matter.Bodies.rectangle(
-            width / 2,
-            height - wallThickness / 2,
-            width,
-            wallThickness,
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 1.3, // Significantly increased for more bouncy floor collisions
-                label: 'ground',
-            }
-        );
+        const ground = Matter.Bodies.rectangle(width / 2, height - wallThickness / 2, width, wallThickness, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 1.3, // Significantly increased for more bouncy floor collisions
+            label: 'ground',
+        });
 
-        const leftWall = Matter.Bodies.rectangle(
-            wallThickness / 2,
-            height / 2,
-            wallThickness,
-            height,
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 1.1, // Increased for more bouncy wall collisions
-                label: 'leftWall',
-            }
-        );
+        const leftWall = Matter.Bodies.rectangle(wallThickness / 2, height / 2, wallThickness, height, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 1.1, // Increased for more bouncy wall collisions
+            label: 'leftWall',
+        });
 
-        const rightWall = Matter.Bodies.rectangle(
-            width - wallThickness / 2,
-            height / 2,
-            wallThickness,
-            height,
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 1.1, // Increased for more bouncy wall collisions
-                label: 'rightWall',
-            }
-        );
+        const rightWall = Matter.Bodies.rectangle(width - wallThickness / 2, height / 2, wallThickness, height, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 1.1, // Increased for more bouncy wall collisions
+            label: 'rightWall',
+        });
 
         Matter.World.add(this.world, [ground, leftWall, rightWall]);
     }
@@ -191,10 +181,7 @@ export class SceneManager {
         }
 
         // Render based on body type
-        if (
-            (body.label && body.label.includes('Wall')) ||
-            body.label === 'ground'
-        ) {
+        if ((body.label && body.label.includes('Wall')) || body.label === 'ground') {
             // Render rectangle
             const width = body.bounds.max.x - body.bounds.min.x;
             const height = body.bounds.max.y - body.bounds.min.y;
@@ -236,6 +223,9 @@ export class SceneManager {
         const targetStepSize = 8.0;
         const steps = Math.ceil(deltaTime / targetStepSize);
         const stepTime = Math.min(deltaTime / steps, 16.667);
+
+        this.clock.stepTime = stepTime;
+        this.clock.steps = steps;
 
         for (let i = 0; i < steps; i++) {
             Matter.Engine.update(this.engine, stepTime);

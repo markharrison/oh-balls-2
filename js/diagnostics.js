@@ -63,28 +63,6 @@ export class DiagnosticPanel {
         const content = document.getElementById('diagnostic-content');
         if (!content) return;
 
-        const balls = this.scene.ballManager.balls;
-
-        // Collect ball data
-        const ballData = balls.map((ball) => {
-            const velocity = ball.body.velocity;
-            const angularVelocity = ball.body.angularVelocity;
-            const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
-            const position = ball.getPosition();
-            const mass = ball.body.mass;
-            const verticalDrop = ball.verticalDrop;
-
-            return {
-                size: ball.size,
-                mass,
-                position,
-                velocity,
-                angularVelocity,
-                speed,
-                verticalDrop,
-            };
-        });
-
         content.innerHTML = `
             <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
                 ${this.scene.getSceneStateHtml()}

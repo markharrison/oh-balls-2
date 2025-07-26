@@ -4,12 +4,12 @@ export class Ball {
         this.sceneManager = sceneManager;
         this.size = this.generateRandomSize();
         this.radius = this.calculateRadius(this.size);
-        this.mass = this.calculateMass(this.size);
+        this.mass = this.calculateMass(this.radius);
         this.color = this.getColorForSize(this.size);
 
         this.body = Matter.Bodies.circle(x, y, this.radius, {
             mass: this.mass,
-            friction: 0.2,
+            friction: 0.5,
             frictionAir: 0.005,
             restitution: 0.95,
             render: {
@@ -26,11 +26,10 @@ export class Ball {
         this.body.torque = 0;
         this.body.angularVelocity = 0;
 
-        this.body.circleRadius = this.radius;
+        //       this.body.circleRadius = this.radius;
 
         this.body.ballInstance = this;
 
-        // Game logic properties belong on the Ball instance, not the physics body
         this.verticalDrop = false;
         this.verticalDropXCoordinate = 512;
         Matter.Body.setStatic(this.body, true);
@@ -54,7 +53,8 @@ export class Ball {
         vHtml += 'Pos:' + this.body.position.x.toFixed(0) + ',' + this.body.position.y.toFixed(0) + '&nbsp;';
         vHtml += 'Vel:' + this.body.velocity.x.toFixed(3) + ',' + this.body.velocity.y.toFixed(3) + '&nbsp;';
         vHtml += 'Ang Vel:' + this.body.angularVelocity.toFixed(3) + '&nbsp;';
-        vHtml += this.verticalDrop ? 'V' : '&nbsp;';
+        vHtml += this.verticalDrop ? 'V' : '';
+        vHtml += this.body.isSleeping ? 'S' : '';
 
         vHtml += '<br/>';
 
@@ -70,11 +70,9 @@ export class Ball {
         return 25 + (size - 1) * 5;
     }
 
-    calculateMass(size) {
-        // Use simple integer scaling to avoid floating-point precision issues
-        // Size 1: mass 1, Size 2: mass 2, Size 3: mass 3, Size 4: mass 4, Size 5: mass 5
-        // This eliminates the complex square root calculations that were causing physics inconsistencies
-        return size;
+    calculateMass(radius) {
+        return (Math.PI * radius * radius.toFixed(1)) / 1000; // Adjusted mass calculation
+        //   return size;
     }
 
     getColorForSize(size) {
@@ -141,21 +139,27 @@ export class Ball {
 export class BallManager {
     constructor(sceneManager) {
         this.sceneManager = sceneManager;
-        this.balls = [];
         this.currentBall = null;
-        this.nextSpawnTime = performance.now();
-        this.jitterTime = 0;
-        this.offScreenBalls = new Map();
+        this.lastCleanupTime = 0;
+        this.lastDropTime = 0;
     }
     start() {
         this.spawnBall();
     }
 
+    getBallBodies() {
+        let allbodies = this.sceneManager.engine.world.bodies;
+        let ballBodies = allbodies.filter((body) => body.label === 'ball');
+        return ballBodies;
+    }
+
     getBallsStateHtml() {
         let vHtml = `<strong>Ball Details</strong><br>`;
 
-        this.balls.forEach((ball) => {
-            vHtml += `${ball.getBallStateHtml()}`;
+        let ballBodies = this.getBallBodies();
+
+        ballBodies.forEach((ballBody) => {
+            vHtml += `${ballBody.ballInstance.getBallStateHtml()}`;
         });
 
         return vHtml;
@@ -166,7 +170,7 @@ export class BallManager {
             return;
         }
 
-        if (performance.now() < this.nextSpawnTime) {
+        if (performance.now() - this.lastDropTime < 1000) {
             return;
         }
 
@@ -174,7 +178,6 @@ export class BallManager {
         const y = 50; // Near top
 
         this.currentBall = new Ball(this.sceneManager, x, y);
-        this.balls.push(this.currentBall);
     }
 
     dropCurrentBall() {
@@ -182,10 +185,14 @@ export class BallManager {
             return;
         }
 
-        this.currentBall.release();
+        let ballBodies = this.getBallBodies();
 
-        this.nextSpawnTime = performance.now() + 2000;
-        this.jitterTime = performance.now() + 10000;
+        ballBodies.forEach((ballBody) => {
+            Matter.Sleeping.set(ballBody, false);
+        });
+
+        this.currentBall.release();
+        this.lastDropTime = performance.now();
 
         // Release the ball from player control
         this.currentBall = null;
@@ -211,85 +218,91 @@ export class BallManager {
         this.currentBall.setPosition(newX, currentPos.y);
     }
 
-    // Called every frame to check if we should spawn a new ball
     updateFrame() {
         this.spawnBall();
         this.updateBallStates();
     }
 
     updateBallStates() {
-        this.balls.forEach((ball) => {
-            ball.keepOnVerticalDrop();
+        let ballBodies = this.getBallBodies();
+
+        ballBodies.forEach((ballBody) => {
+            ballBody.ballInstance.keepOnVerticalDrop();
         });
 
         this.stopJittering();
+
+        this.cleanup();
     }
 
     stopJittering() {
-        if (this.jitterTime == 0 || performance.now() < this.jitterTime) {
+        let now = performance.now();
+        if (now - this.lastDropTime < 10000) {
             return;
         }
 
-        this.balls.forEach((ball) => {
-            const body = ball.body;
-
-            if (body.label === 'ball' && !body.isStatic) {
-                const speedSquared = body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y;
+        let ballBodies = this.getBallBodies();
+        ballBodies.forEach((ballBody) => {
+            if (!ballBody.isStatic) {
+                const speedSquared = ballBody.velocity.x * ballBody.velocity.x + ballBody.velocity.y * ballBody.velocity.y;
+                const isMovingSlowly = speedSquared < 0.01;
+                const isRotatingSlowly = Math.abs(ballBody.angularVelocity) < 0.01;
 
                 // Stop micro-movements: only stop balls that are moving very slowly
-                if (speedSquared < 0.01 && speedSquared > 0) {
-                    Matter.Body.setVelocity(body, { x: 0, y: 0 });
-                    body.force.x = 0;
-                    body.force.y = 0;
+                if (isMovingSlowly) {
+                    Matter.Body.setVelocity(ballBody, { x: 0, y: 0 });
+                    ballBody.force.x = 0;
+                    ballBody.force.y = 0;
                 }
 
                 // Check angular velocity separately and stop if it's very small
-                if (Math.abs(body.angularVelocity) < 0.01 && Math.abs(body.angularVelocity) > 0) {
-                    Matter.Body.setAngularVelocity(body, 0);
-                    body.torque = 0;
+                if (isRotatingSlowly) {
+                    Matter.Body.setAngularVelocity(ballBody, 0);
+                    ballBody.torque = 0;
+                }
+
+                if (isMovingSlowly && isRotatingSlowly && now - this.lastDropTime > 15000) {
+                    Matter.Sleeping.set(ballBody, true);
                 }
             }
         });
     }
 
     cleanup() {
-        const now = performance.now();
-        const gracePeriod = 3000; // 3 seconds grace period for off-screen balls
+        let now = performance.now();
+        if (now - this.lastCleanupTime < 15000) {
+            return;
+        }
+        this.lastCleanupTime = now;
+
+        console.log('Cleaning up balls... ' + now);
+
         const canvasWidth = 1024;
         const canvasHeight = 768;
-        const maxOffScreenDistance = 200; // Allow balls to go this far off-screen before removal
 
-        // Remove balls that have been off-screen too long or are too far away
-        this.balls = this.balls.filter((ball) => {
-            const pos = ball.getPosition();
-            const isOffScreen =
-                pos.y > canvasHeight + maxOffScreenDistance ||
-                pos.x < -maxOffScreenDistance ||
-                pos.x > canvasWidth + maxOffScreenDistance ||
-                pos.y < -maxOffScreenDistance;
+        let ballBodies = this.getBallBodies();
+
+        ballBodies.forEach((ballBody) => {
+            const pos = ballBody.ballInstance.getPosition();
+            const isOffScreen = pos.x < 0 || pos.x > canvasWidth || pos.y < 0 || pos.y > canvasHeight;
 
             if (isOffScreen) {
-                // Track when this ball first went off-screen
-                if (!this.offScreenBalls.has(ball)) {
-                    this.offScreenBalls.set(ball, now);
-                    return true; // Keep the ball for now
-                }
+                ballBody.ballInstance.destroy();
+                ballBody.ballInstance = null;
+            }
+        });
+    }
 
-                // Check if grace period has expired
-                const offScreenTime = now - this.offScreenBalls.get(ball);
-                if (offScreenTime > gracePeriod) {
-                    this.offScreenBalls.delete(ball);
-                    ball.destroy();
-                    return false;
-                }
+    testBalls() {
+        console.log('Testing balls...');
 
-                return true; // Still within grace period
-            } else {
-                // Ball is back on screen, remove from off-screen tracking
-                if (this.offScreenBalls.has(ball)) {
-                    this.offScreenBalls.delete(ball);
-                }
-                return true;
+        let ballBodies = this.getBallBodies();
+
+        ballBodies.forEach((ballBody) => {
+            if (ballBody.ballInstance.size == 5) {
+                const pos = ballBody.ballInstance.getPosition();
+
+                ballBody.ballInstance.setPosition(pos.x - 2000, pos.y);
             }
         });
     }

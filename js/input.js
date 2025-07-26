@@ -1,7 +1,8 @@
 // Input Handling Module
 export class InputHandler {
-    constructor(ballManager) {
+    constructor(ballManager, diagnosticsPanel) {
         this.ballManager = ballManager;
+        this.diagnosticsPanel = diagnosticsPanel;
         this.keys = {
             left: false,
             right: false,
@@ -28,12 +29,21 @@ export class InputHandler {
 
         // Prevent default behavior for arrow keys to avoid page scrolling
         document.addEventListener('keydown', (event) => {
-            if (
-                ['ArrowLeft', 'ArrowRight', 'ArrowDown', 'Space'].includes(
-                    event.code
-                )
-            ) {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'Space'].includes(event.code)) {
                 event.preventDefault();
+            }
+        });
+
+        // Diagnostics panel toggle (press D)
+        document.addEventListener('keydown', (event) => {
+            if (event.key.toLowerCase() === 'd' && this.diagnosticsPanel) {
+                this.diagnosticsPanel.toggle();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key.toLowerCase() === 't') {
+                this.ballManager.testBalls();
             }
         });
     }
