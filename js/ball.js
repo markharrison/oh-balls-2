@@ -39,14 +39,35 @@ export class Ball {
         this.sceneManager.addBody(this.body);
     }
 
+    getBallStateHtml() {
+        let vHtml = ``;
+
+        vHtml += this.body.id + ':&nbsp;';
+        vHtml +=
+            '<svg width="12" height="12" style="vertical-align:middle;"><circle cx="6" cy="6" r="6" fill="' +
+            this.color +
+            '"/></svg>&nbsp;';
+
+        vHtml += 'Size:' + this.size + '&nbsp;';
+        vHtml += 'Mass:' + this.mass.toFixed(1) + '&nbsp;';
+        vHtml += 'Speed:' + this.body.speed.toFixed(3) + '&nbsp;';
+        vHtml += 'Pos:' + this.body.position.x.toFixed(0) + ',' + this.body.position.y.toFixed(0) + '&nbsp;';
+        vHtml += 'Vel:' + this.body.velocity.x.toFixed(3) + ',' + this.body.velocity.y.toFixed(3) + '&nbsp;';
+        vHtml += 'Ang Vel:' + this.body.angularVelocity.toFixed(3) + '&nbsp;';
+        vHtml += this.verticalDrop ? 'V' : '&nbsp;';
+
+        vHtml += '<br/>';
+
+        return vHtml;
+    }
+
     generateRandomSize() {
         // Random size from 1 to 5 as specified
-        return Math.floor(Math.random() * 10) + 1;
+        return Math.floor(Math.random() * 5) + 1;
     }
 
     calculateRadius(size) {
-        // Size 1 = radius 15, size 15 = radius 60
-        return 15 + (size - 1) * 5;
+        return 25 + (size - 1) * 5;
     }
 
     calculateMass(size) {
@@ -88,27 +109,14 @@ export class Ball {
 
     setPosition(x, y) {
         Matter.Body.setPosition(this.body, { x, y });
-        // console.log('  -> SetPosition:', {
-        //     x: this.body.position.x,
-        //     y: this.body.position.y,
-        // });
     }
 
     keepOnVerticalDrop() {
         // Ensure the ball stays in vertical drop mode
         if (this.verticalDrop) {
             // Keep the ball's x position fixed at the vertical drop x coordinate
-            this.setPosition(
-                this.verticalDropXCoordinate,
-                this.body.position.y
-            );
+            this.setPosition(this.verticalDropXCoordinate, this.body.position.y);
         }
-
-        //     console.log('  -> keepOnVerticalDrop:', {
-        //         id: this.body.id,
-        //         x: this.body.position.x,
-        //         y: this.body.position.y,
-        //     });
     }
 
     applyForce(x, y) {
@@ -141,6 +149,16 @@ export class BallManager {
     }
     start() {
         this.spawnBall();
+    }
+
+    getBallsStateHtml() {
+        let vHtml = `<strong>Ball Details</strong><br>`;
+
+        this.balls.forEach((ball) => {
+            vHtml += `${ball.getBallStateHtml()}`;
+        });
+
+        return vHtml;
     }
 
     spawnBall() {
@@ -193,18 +211,10 @@ export class BallManager {
         this.currentBall.setPosition(newX, currentPos.y);
     }
 
-    updateUI() {
-        const ballInfoElement = document.getElementById('currentBallSize');
-
-        ballInfoElement.textContent = `Current Ball: Size xxx`;
-    }
-
     // Called every frame to check if we should spawn a new ball
     updateFrame() {
         this.spawnBall();
         this.updateBallStates();
-        this.updateUI();
-        // this.cleanup();
     }
 
     updateBallStates() {
@@ -215,30 +225,16 @@ export class BallManager {
         this.stopJittering();
     }
 
-    // getAllBalls() {
-    //     return this.balls;
-    // }
-
     stopJittering() {
         if (this.jitterTime == 0 || performance.now() < this.jitterTime) {
             return;
         }
 
-        // console.log(
-        //     'Stopping jittering for all balls { time: ' +
-        //         performance.now() +
-        //         ', dropballtime: ' +
-        //         this.jitterTime +
-        //         ' }'
-        // );
-
         this.balls.forEach((ball) => {
             const body = ball.body;
 
             if (body.label === 'ball' && !body.isStatic) {
-                const speedSquared =
-                    body.velocity.x * body.velocity.x +
-                    body.velocity.y * body.velocity.y;
+                const speedSquared = body.velocity.x * body.velocity.x + body.velocity.y * body.velocity.y;
 
                 // Stop micro-movements: only stop balls that are moving very slowly
                 if (speedSquared < 0.01 && speedSquared > 0) {
@@ -248,10 +244,7 @@ export class BallManager {
                 }
 
                 // Check angular velocity separately and stop if it's very small
-                if (
-                    Math.abs(body.angularVelocity) < 0.01 &&
-                    Math.abs(body.angularVelocity) > 0
-                ) {
+                if (Math.abs(body.angularVelocity) < 0.01 && Math.abs(body.angularVelocity) > 0) {
                     Matter.Body.setAngularVelocity(body, 0);
                     body.torque = 0;
                 }

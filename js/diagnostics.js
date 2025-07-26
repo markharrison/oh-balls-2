@@ -1,7 +1,7 @@
 // Diagnostic Panel for debugging physics issues
 export class DiagnosticPanel {
-    constructor(game) {
-        this.game = game;
+    constructor(scene) {
+        this.scene = scene;
         this.enabled = false;
         this.panel = null;
 
@@ -63,8 +63,7 @@ export class DiagnosticPanel {
         const content = document.getElementById('diagnostic-content');
         if (!content) return;
 
-        const gameState = this.game.getGameState();
-        const balls = this.game.ballManager.balls;
+        const balls = this.scene.ballManager.balls;
 
         // Collect ball data
         const ballData = balls.map((ball) => {
@@ -88,45 +87,13 @@ export class DiagnosticPanel {
 
         content.innerHTML = `
             <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                <strong>Game State</strong><br>
-                Running: ${gameState.running}<br>
-                Balls: ${gameState.ballCount}<br>
-                Current Ball: ${gameState.currentBall}<br>
-                Delta Time: ${gameState.deltaTime.toFixed(2)}ms<br>
-                FPS: ${(1000 / gameState.deltaTime).toFixed(1)}
+                ${this.scene.getSceneStateHtml()}
             </div>
 
             <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                <strong>Ball Details</strong><br>
-                ${
-                    ballData.length === 0
-                        ? 'No balls in scene'
-                        : ballData
-                              .map(
-                                  (ball, i) => `
-                    <div style="margin-bottom: 2px; font-size: 11px;">
-                      Ball ${i + 1}: Size ${
-                                      ball.size
-                                  } | Mass ${ball.mass.toFixed(
-                                      1
-                                  )} | Speed ${ball.speed.toFixed(8)} 
-                                  | ${
-                                      ball.verticalDrop ? 'V' : ' '
-                                  } | Pos (${ball.position.x.toFixed(
-                                      0
-                                  )},${ball.position.y.toFixed(
-                                      0
-                                  )}) | Vel (${ball.velocity.x.toFixed(
-                                      3
-                                  )},${ball.velocity.y.toFixed(
-                                      3
-                                  )}) ${ball.angularVelocity.toFixed(6)} |
-                    </div>
-                  `
-                              )
-                              .join('')
-                }
+                ${this.scene.ballManager.getBallsStateHtml()}
             </div>
+
         `;
     }
 

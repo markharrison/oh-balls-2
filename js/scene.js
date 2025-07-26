@@ -1,4 +1,7 @@
-// Scene Manager Module using Matter.js
+import { BallManager } from './ball.js';
+import { InputHandler } from './input.js';
+import { DiagnosticPanel } from './diagnostics.js';
+
 export class SceneManager {
     constructor(canvas) {
         this.canvas = canvas;
@@ -11,21 +14,37 @@ export class SceneManager {
         this.engine.world.gravity.y = 0.8;
         this.engine.timing.timeScale = 1;
 
+        this.clock = {
+            deltaTime: 0,
+            currentTime: 0,
+        };
+
+        this.ballManager = new BallManager(this);
+        this.inputHandler = new InputHandler(this.ballManager);
+        this.diagnostics = new DiagnosticPanel(this);
+
         this.setupBoundaries();
 
         this.setupEventHandlers();
     }
 
-    setupEventHandlers() {
-        // Ball-ground collision events
-        this.setupEventsBallGroundCollision();
-
-        // Ball-ball collision events to track vertical drop state
-        this.setupEventsBallBallCollision();
+    getSceneStateHtml() {
+        const vHtml = `
+            <strong>Scene State</strong><br>
+            Balls: ${this.ballManager.balls.length}<br>
+            Delta Time: ${this.clock.deltaTime.toFixed(2)}ms<br>
+            FPS: ${(1000 / this.clock.deltaTime).toFixed(1)}<br>
+        `;
+        return vHtml;
     }
 
-    setupEventsBallBallCollision() {
-        // Handle ball-ball collisions to set verticalDrop to false
+    setupEventHandlers() {
+        // Ball-ground collision events
+        // this.setupEventsBallGroundCollision();
+
+        // // Ball-ball collision events to track vertical drop state
+        // this.setupEventsBallBallCollision();
+
         Matter.Events.on(this.engine, 'collisionStart', (event) => {
             event.pairs.forEach((pair) => {
                 const bodyA = pair.bodyA;
@@ -41,9 +60,7 @@ export class SceneManager {
                 }
             });
         });
-    }
 
-    setupEventsBallGroundCollision() {
         Matter.Events.on(this.engine, 'collisionEnd', (event) => {
             event.pairs.forEach((pair) => {
                 const bodyA = pair.bodyA;
@@ -64,103 +81,11 @@ export class SceneManager {
                         : null;
 
                 if (ball && ground) {
-                    ball.ballInstance.keepOnVerticalDrop();
+                    //                   ball.ballInstance.keepOnVerticalDrop();
                 }
             });
         });
     }
-
-    // Event handlers for ball-ground collisions
-    // onBallGroundCollisionStart(ball, ground, pair) {
-    //     // Calculate speed manually to compare with Matter.js speed property
-    //     const manualSpeed = Math.sqrt(
-    //         ball.velocity.x * ball.velocity.x +
-    //             ball.velocity.y * ball.velocity.y
-    //     );
-
-    //     console.log('Ball-Ground Collision START:', {
-    //         ballId: ball.id,
-    //         ballPosition: { x: ball.position.x, y: ball.position.y },
-    //         ballVelocity: { x: ball.velocity.x, y: ball.velocity.y },
-    //         ballSpeed_Matter: ball.speed,
-    //         ballSpeed_Manual: manualSpeed,
-    //         ballSpeed_PreCollision: ball.preCollisionSpeed || 'N/A',
-    //         ballSpeed_Difference: Math.abs(ball.speed - manualSpeed),
-    //         ballAngularVelocity: ball.angularVelocity,
-    //         // Additional debugging info
-    //         collisionNormal: pair.collision ? pair.collision.normal : 'N/A',
-    //         separationDistance: pair.separation || 'N/A',
-    //         // Collision timing analysis
-    //         restitution: ground.restitution,
-    //         friction: ground.friction,
-    //         ballMass: ball.mass,
-    //         // Check previous velocity using positionPrev if available
-    //         previousPosition: ball.positionPrev
-    //             ? { x: ball.positionPrev.x, y: ball.positionPrev.y }
-    //             : 'N/A',
-    //     });
-
-    //     // Test: Check speed again after a tiny delay to see if it updates
-    //     setTimeout(() => {
-    //         const delayedManualSpeed = Math.sqrt(
-    //             ball.velocity.x * ball.velocity.x +
-    //                 ball.velocity.y * ball.velocity.y
-    //         );
-    //         console.log('  -> POST-COLLISION (1ms later):', {
-    //             ballSpeed_Matter: ball.speed,
-    //             ballSpeed_Manual: delayedManualSpeed,
-    //             ballVelocity: { x: ball.velocity.x, y: ball.velocity.y },
-    //         });
-    //     }, 1);
-
-    // You can add custom logic here for when collision begins
-    // For example: play sound, create particles, apply special forces, etc.
-    //}
-
-    //nBallGroundCollisionActive(ball, ground, pair) {
-    // This fires continuously while the ball is touching the ground
-    // Useful for ongoing effects like friction modifications or continuous forces
-    // Uncomment to see continuous collision data (warning: lots of console output)
-    // console.log('Ball-Ground Collision ACTIVE:', {
-    //     ballId: ball.id,
-    //     ballSpeed: ball.speed,
-    //     penetration: pair.separation // How much the objects are overlapping
-    // });
-    //}
-
-    // onBallGroundCollisionEnd(ball, ground, pair) {
-    //     console.log('Ball-Ground Collision END:', {
-    //         ballId: ball.id,
-    //         ballPosition: { x: ball.position.x, y: ball.position.y },
-    //         ballVelocity: { x: ball.velocity.x, y: ball.velocity.y },
-    //         ballSpeed: ball.speed,
-    //         ballAngularVelocity: ball.angularVelocity,
-    //     });
-
-    // You can add custom logic here for when collision ends
-    // For example: stop sound effects, clean up particles, record bounce count, etc.
-    //}
-
-    // handleMassImbalancedCollisions() {
-    //     // Apply additional dampening to balls that have extreme velocity due to mass imbalance
-    //     // const bodies = Matter.Composite.allBodies(this.world);
-    //     // bodies.forEach(body => {
-    //     //     if (body.label === 'ball' && !body.isStatic) {
-    //     //         const velocity = body.velocity;
-    //     //         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-    //     //         // If a ball is moving very fast, apply additional dampening
-    //     //         // This helps prevent small balls from being launched into orbit by large balls
-    //     //         // Increased threshold from 15 to 18 to allow more natural bouncing
-    //     //         if (speed > 18) {
-    //     //             const dampeningFactor = 0.9; // Reduce velocity by 10%
-    //     //             Matter.Body.setVelocity(body, {
-    //     //                 x: velocity.x * dampeningFactor,
-    //     //                 y: velocity.y * dampeningFactor
-    //     //             });
-    //     //         }
-    //     //     }
-    //     // });
-    // }
 
     setupBoundaries() {
         const wallThickness = 16;
@@ -226,11 +151,15 @@ export class SceneManager {
     }
 
     start() {
-        // Physics engine started
+        this.ballManager.start();
     }
 
-    stop() {
-        // No runner to stop since we're using manual engine updates
+    stop() {}
+
+    destroy() {
+        this.ballManager = null;
+        this.inputHandler = null;
+        this.diagnostics = null;
     }
 
     addBody(body) {
@@ -303,8 +232,20 @@ export class SceneManager {
         ctx.restore();
     }
 
+    updatePhysics(deltaTime) {
+        const targetStepSize = 8.0;
+        const steps = Math.ceil(deltaTime / targetStepSize);
+        const stepTime = Math.min(deltaTime / steps, 16.667);
+
+        for (let i = 0; i < steps; i++) {
+            Matter.Engine.update(this.engine, stepTime);
+        }
+    }
+
     renderScene() {
-        // Clear canvas
+        const ballInfoElement = document.getElementById('currentBallSize');
+        ballInfoElement.textContent = `Current Ball: Size xxx`;
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Fill background
@@ -319,80 +260,20 @@ export class SceneManager {
         });
     }
 
-    updateFrame(deltaTime) {
-        // Ensure deltaTime is within Matter.js recommended bounds (≤ 16.667ms for 60fps)
-        const clampedDelta = Math.min(Math.max(deltaTime, 8), 16.0); // Keep safely under 16.667ms
+    updateFrame() {
+        const currentTime = performance.now();
+        const lastTime = this.clock.currentTime;
+        this.clock.currentTime = currentTime;
+        this.clock.deltaTime = this.clock.currentTime - lastTime;
 
-        // Use smaller time steps for higher precision physics simulation
-        // Instead of one large step, use multiple smaller steps
-        const targetStepSize = 8.0; // Smaller steps for better precision
-        const steps = Math.ceil(clampedDelta / targetStepSize);
-        const actualStepSize = clampedDelta / steps;
+        this.inputHandler.getInput();
 
-        // Update physics engine with multiple smaller steps
-        for (let i = 0; i < steps; i++) {
-            Matter.Engine.update(this.engine, actualStepSize);
-            // Apply jittering fix after each physics step to be more aggressive
+        this.updatePhysics(this.clock.deltaTime);
 
-        }
-
-        //this.clampVelocities();
+        this.ballManager.updateFrame();
 
         this.renderScene();
+
+        this.diagnostics.updateFrame();
     }
-
-
-
-    // clampVelocities() {
-    //     // Maximum velocity to prevent balls from moving so fast they disappear
-    //     const maxVelocity = 20; // Reduced from 30 to 20 to better contain small balls
-    //     const maxVelocitySquared = maxVelocity * maxVelocity;
-
-    //     // Minimum velocity threshold - set very small velocities to zero to prevent oscillation
-    //     const restThreshold = 0.01; // If velocity components are smaller than this, set to zero
-    //     const restThresholdSquared = restThreshold * restThreshold;
-
-    //     const bodies = Matter.Composite.allBodies(this.world);
-
-    //     bodies.forEach((body) => {
-    //         // Only clamp ball velocities, not static walls
-    //         if (body.label === 'ball' && !body.isStatic) {
-    //             const velocity = body.velocity;
-    //             const velocityMagnitudeSquared =
-    //                 velocity.x * velocity.x + velocity.y * velocity.y;
-
-    //             // If velocity is very small, set to zero to prevent micro-oscillations
-    //             if (
-    //                 velocityMagnitudeSquared > 0 &&
-    //                 velocityMagnitudeSquared < restThresholdSquared
-    //             ) {
-    //                 Matter.Body.setVelocity(body, { x: 0, y: 0 });
-    //             }
-
-    //             // Only dampen angular velocity if the ball is also at rest (very low linear velocity)
-    //             // This allows natural spinning from ball interactions while eliminating micro-oscillations
-    //             const angularVelocity = body.angularVelocity;
-    //             if (
-    //                 Math.abs(angularVelocity) > 0 &&
-    //                 Math.abs(angularVelocity) < restThreshold &&
-    //                 velocityMagnitudeSquared < restThresholdSquared
-    //             ) {
-    //                 Matter.Body.setAngularVelocity(body, 0);
-    //             }
-    //             // If velocity exceeds maximum, scale it down
-    //             else if (velocityMagnitudeSquared > maxVelocitySquared) {
-    //                 const velocityMagnitude = Math.sqrt(
-    //                     velocityMagnitudeSquared
-    //                 );
-    //                 const scale = maxVelocity / velocityMagnitude;
-
-    //                 // Scale down velocity to maximum allowed
-    //                 Matter.Body.setVelocity(body, {
-    //                     x: velocity.x * scale,
-    //                     y: velocity.y * scale,
-    //                 });
-    //             }
-    //         }
-    //     });
-    // }
 }
