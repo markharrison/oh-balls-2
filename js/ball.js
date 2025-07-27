@@ -1,4 +1,6 @@
 // Ball Module for creating and managing balls
+import { PhysicsBodyFactory } from './physics.js';
+
 export class Ball {
     constructor(sceneManager, x, y) {
         this.sceneManager = sceneManager;
@@ -7,7 +9,7 @@ export class Ball {
         this.mass = this.calculateMass(this.radius);
         this.color = this.getColorForSize(this.size);
 
-        this.body = Matter.Bodies.circle(x, y, this.radius, {
+        this.physicsBody = PhysicsBodyFactory.createCircle(x, y, this.radius, {
             mass: this.mass,
             friction: 0.5,
             frictionAir: 0.005,
@@ -21,27 +23,27 @@ export class Ball {
             label: 'ball',
         });
 
-        this.body.force.x = 0;
-        this.body.force.y = 0;
-        this.body.torque = 0;
-        this.body.angularVelocity = 0;
+        // Reset forces and motion
+        this.physicsBody.customProperties.force.x = 0;
+        this.physicsBody.customProperties.force.y = 0;
+        this.physicsBody.customProperties.torque = 0;
+        this.physicsBody.setAngularVelocity(0);
 
-        //       this.body.circleRadius = this.radius;
-
-        this.body.ballInstance = this;
+        // Store reference to ball instance on the physics body
+        this.physicsBody.customProperties.ballInstance = this;
 
         this.verticalDrop = false;
         this.verticalDropXCoordinate = 512;
-        Matter.Body.setStatic(this.body, true);
+        this.physicsBody.setStatic(true);
 
         // Add to scene
-        this.sceneManager.addBody(this.body);
+        this.sceneManager.addBody(this.physicsBody);
     }
 
     getBallStateHtml() {
         let vHtml = ``;
 
-        vHtml += this.body.id + ':&nbsp;';
+        vHtml += this.physicsBody.id + ':&nbsp;';
         vHtml +=
             '<svg width="12" height="12" style="vertical-align:middle;"><circle cx="6" cy="6" r="6" fill="' +
             this.color +
@@ -49,12 +51,14 @@ export class Ball {
 
         vHtml += 'Size:' + this.size + '&nbsp;';
         vHtml += 'Mass:' + this.mass.toFixed(1) + '&nbsp;';
-        vHtml += 'Speed:' + this.body.speed.toFixed(3) + '&nbsp;';
-        vHtml += 'Pos:' + this.body.position.x.toFixed(0) + ',' + this.body.position.y.toFixed(0) + '&nbsp;';
-        vHtml += 'Vel:' + this.body.velocity.x.toFixed(3) + ',' + this.body.velocity.y.toFixed(3) + '&nbsp;';
-        vHtml += 'Ang Vel:' + this.body.angularVelocity.toFixed(3) + '&nbsp;';
+        vHtml += 'Speed:' + this.physicsBody.speed.toFixed(3) + '&nbsp;';
+        const pos = this.physicsBody.getPosition();
+        vHtml += 'Pos:' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + '&nbsp;';
+        const vel = this.physicsBody.getVelocity();
+        vHtml += 'Vel:' + vel.x.toFixed(3) + ',' + vel.y.toFixed(3) + '&nbsp;';
+        vHtml += 'Ang Vel:' + this.physicsBody.getAngularVelocity().toFixed(3) + '&nbsp;';
         vHtml += this.verticalDrop ? 'V' : '';
-        vHtml += this.body.isSleeping ? 'S' : '';
+        vHtml += this.physicsBody.isSleeping() ? 'S' : '';
 
         vHtml += '<br/>';
 
@@ -99,40 +103,39 @@ export class Ball {
     }
 
     getPosition() {
-        return {
-            x: this.body.position.x,
-            y: this.body.position.y,
-        };
+        return this.physicsBody.getPosition();
     }
 
     setPosition(x, y) {
-        Matter.Body.setPosition(this.body, { x, y });
+        this.physicsBody.setPosition(x, y);
     }
 
     keepOnVerticalDrop() {
         // Ensure the ball stays in vertical drop mode
         if (this.verticalDrop) {
             // Keep the ball's x position fixed at the vertical drop x coordinate
-            this.setPosition(this.verticalDropXCoordinate, this.body.position.y);
+            const pos = this.physicsBody.getPosition();
+            this.setPosition(this.verticalDropXCoordinate, pos.y);
         }
     }
 
     applyForce(x, y) {
-        Matter.Body.applyForce(this.body, this.body.position, { x, y });
+        this.physicsBody.applyForce(x, y);
     }
 
     // Release ball from static state (when dropped)
     release() {
-        Matter.Body.setStatic(this.body, false);
-        Matter.Body.setAngularVelocity(this.body, 0);
-        Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
+        this.physicsBody.setStatic(false);
+        this.physicsBody.setAngularVelocity(0);
+        this.physicsBody.setVelocity(0, 0);
 
-        this.verticalDropXCoordinate = this.body.position.x;
+        const pos = this.physicsBody.getPosition();
+        this.verticalDropXCoordinate = pos.x;
         this.verticalDrop = true;
     }
 
     destroy() {
-        this.sceneManager.removeBody(this.body);
+        this.sceneManager.removeBody(this.physicsBody);
     }
 }
 
@@ -148,9 +151,7 @@ export class BallManager {
     }
 
     getBallBodies() {
-        let allbodies = this.sceneManager.engine.world.bodies;
-        let ballBodies = allbodies.filter((body) => body.label === 'ball');
-        return ballBodies;
+        return this.sceneManager.physics.getBodiesByLabel('ball');
     }
 
     getBallsStateHtml() {
@@ -188,7 +189,7 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            Matter.Sleeping.set(ballBody, false);
+            ballBody.ballInstance.physicsBody.setSleeping(false);
         });
 
         this.currentBall.release();
@@ -244,25 +245,27 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
         ballBodies.forEach((ballBody) => {
             if (!ballBody.isStatic) {
-                const speedSquared = ballBody.velocity.x * ballBody.velocity.x + ballBody.velocity.y * ballBody.velocity.y;
+                const velocity = ballBody.ballInstance.physicsBody.getVelocity();
+                const speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
                 const isMovingSlowly = speedSquared < 0.01;
-                const isRotatingSlowly = Math.abs(ballBody.angularVelocity) < 0.01;
+                const angularVelocity = ballBody.ballInstance.physicsBody.getAngularVelocity();
+                const isRotatingSlowly = Math.abs(angularVelocity) < 0.01;
 
                 // Stop micro-movements: only stop balls that are moving very slowly
                 if (isMovingSlowly) {
-                    Matter.Body.setVelocity(ballBody, { x: 0, y: 0 });
+                    ballBody.ballInstance.physicsBody.setVelocity(0, 0);
                     ballBody.force.x = 0;
                     ballBody.force.y = 0;
                 }
 
                 // Check angular velocity separately and stop if it's very small
                 if (isRotatingSlowly) {
-                    Matter.Body.setAngularVelocity(ballBody, 0);
+                    ballBody.ballInstance.physicsBody.setAngularVelocity(0);
                     ballBody.torque = 0;
                 }
 
                 if (isMovingSlowly && isRotatingSlowly && now - this.lastDropTime > 15000) {
-                    Matter.Sleeping.set(ballBody, true);
+                    ballBody.ballInstance.physicsBody.setSleeping(true);
                 }
             }
         });
@@ -301,7 +304,6 @@ export class BallManager {
         ballBodies.forEach((ballBody) => {
             if (ballBody.ballInstance.size == 5) {
                 const pos = ballBody.ballInstance.getPosition();
-
                 ballBody.ballInstance.setPosition(pos.x - 2000, pos.y);
             }
         });
