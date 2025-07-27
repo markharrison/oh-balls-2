@@ -12,6 +12,9 @@ export class SceneManager {
         this.physics = new PhysicsEngine().create();
         this.physics.setGravity(0, 0.8);
         this.physics.setTimeScale(1);
+        
+        // Set world reference in factory
+        PhysicsBodyFactory.setWorld(this.physics.world);
 
         this.clock = {
             deltaTime: 0,
@@ -62,8 +65,11 @@ export class SceneManager {
                 const ballB = bodyB.label === 'ball' ? bodyB : null;
 
                 if (ballA && ballB) {
-                    ballA.customProperties.ballInstance.verticalDrop = false;
-                    ballB.customProperties.ballInstance.verticalDrop = false;
+                    const ballInstanceA = ballA.customProperties.ballInstance;
+                    const ballInstanceB = ballB.customProperties.ballInstance;
+                    
+                    if (ballInstanceA) ballInstanceA.verticalDrop = false;
+                    if (ballInstanceB) ballInstanceB.verticalDrop = false;
                 }
             });
         });
@@ -171,29 +177,49 @@ export class SceneManager {
 
     renderBody(body) {
         const ctx = this.ctx;
-        // Handle both PhysicsBody wrapper and raw MatterJS body
-        const physicsBody = body.body ? body.body : body;
-        const position = physicsBody.position;
-        const angle = physicsBody.angle;
+        // Handle both PhysicsBody wrapper and raw Plank body
+        const planckBody = body.body ? body.body : body;
+        const position = planckBody.getPosition();
+        const angle = planckBody.getAngle();
+        const userData = planckBody.getUserData() || {};
 
         ctx.save();
         ctx.translate(position.x, position.y);
         ctx.rotate(angle);
 
-        if (physicsBody.render.fillStyle) {
-            ctx.fillStyle = physicsBody.render.fillStyle;
+        if (userData.render && userData.render.fillStyle) {
+            ctx.fillStyle = userData.render.fillStyle;
         }
 
-        if (physicsBody.render.strokeStyle) {
-            ctx.strokeStyle = physicsBody.render.strokeStyle;
-            ctx.lineWidth = physicsBody.render.lineWidth || 1;
+        if (userData.render && userData.render.strokeStyle) {
+            ctx.strokeStyle = userData.render.strokeStyle;
+            ctx.lineWidth = userData.render.lineWidth || 1;
         }
 
         // Render based on body type
-        if ((physicsBody.label && physicsBody.label.includes('Wall')) || physicsBody.label === 'ground') {
-            // Render rectangle
-            const width = physicsBody.bounds.max.x - physicsBody.bounds.min.x;
-            const height = physicsBody.bounds.max.y - physicsBody.bounds.min.y;
+        const label = userData.label || '';
+        if (label.includes('Wall') || label === 'ground') {
+            // Render rectangle - get dimensions from AABB
+            const aabb = new planck.AABB();
+            let first = true;
+            
+            for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
+                const shape = fixture.getShape();
+                const transform = planckBody.getTransform();
+                const childAABB = new planck.AABB();
+                shape.computeAABB(childAABB, transform, 0);
+                
+                if (first) {
+                    aabb.lowerBound.set(childAABB.lowerBound);
+                    aabb.upperBound.set(childAABB.upperBound);
+                    first = false;
+                } else {
+                    aabb.combine(childAABB);
+                }
+            }
+
+            const width = aabb.upperBound.x - aabb.lowerBound.x;
+            const height = aabb.upperBound.y - aabb.lowerBound.y;
 
             ctx.fillRect(-width / 2, -height / 2, width, height);
             if (ctx.strokeStyle) {
@@ -201,13 +227,15 @@ export class SceneManager {
             }
         } else {
             // Render circle (ball)
-            // Use the actual physics body radius from the circle shape
-            let physicsRadius;
-            if (physicsBody.circleRadius !== undefined) {
-                physicsRadius = physicsBody.circleRadius;
-            } else {
-                // Fallback to bounding box calculation
-                physicsRadius = (physicsBody.bounds.max.x - physicsBody.bounds.min.x) / 2;
+            let physicsRadius = 0;
+            
+            // Get radius from first circle fixture
+            for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
+                const shape = fixture.getShape();
+                if (shape.getType() === planck.Circle.TYPE) {
+                    physicsRadius = shape.getRadius();
+                    break;
+                }
             }
 
             // Adjust rendering radius so stroke doesn't extend beyond physics boundary
