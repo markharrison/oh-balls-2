@@ -12,7 +12,7 @@ export class PhysicsEngine {
     // Initialize the physics engine
     create() {
         this.world = new planck.World({
-            gravity: { x: 0, y: 30 }
+            gravity: { x: 0, y: -10 }
         });
 
         // Set up contact listener for event handling
