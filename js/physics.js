@@ -2,6 +2,13 @@
 // This module provides a generic physics interface that wraps Plank.js
 // Making it easy to swap physics engines in the future
 
+// Physics engine specific constants
+export const PhysicsConstants = {
+    // Velocity thresholds for stopping jitter (Planck.js specific values)
+    slowLinearVelocityThreshold: 0.5, // speedSquared threshold
+    slowAngularVelocityThreshold: 0.02, // absolute angular velocity threshold
+};
+
 export class PhysicsEngine {
     constructor() {
         this.world = null;
@@ -11,7 +18,9 @@ export class PhysicsEngine {
 
     // Initialize the physics engine
     create() {
-        this.world = new planck.World();
+        this.world = new planck.World({
+            allowSleep: false,
+        });
 
         // Set up contact listener for event handling
         this.world.on('begin-contact', (contact) => {
@@ -61,9 +70,9 @@ export class PhysicsEngine {
     // Update physics simulation
     update(deltaTime) {
         if (this.world) {
-            // Use a more consistent timestep for Plank JS
+            // Use a more consistent timestep for Plank JS with higher iterations for stability
             const fixedTimeStep = 1 / 60; // 60 FPS fixed timestep
-            this.world.step(fixedTimeStep, 8, 3); // timestep, velocityIterations, positionIterations
+            this.world.step(fixedTimeStep, 10, 8); // Increased iterations for better collision detection
         }
     }
 
@@ -367,14 +376,19 @@ export class PhysicsBodyFactory {
 
         body.createFixture(fixtureDef);
 
-        // Set mass if provided
+        // Calculate density from mass if provided (let Planck handle mass calculations)
         if (options.mass !== undefined) {
-            const massData = {
-                mass: options.mass,
-                center: { x: 0, y: 0 },
-                I: (options.mass * radius * radius) / 2, // Moment of inertia for circle
-            };
-            body.setMassData(massData);
+            // Calculate density needed to achieve desired mass
+            // Mass = density * area, so density = mass / area
+            const area = Math.PI * radius * radius;
+            const desiredDensity = options.mass / area;
+
+            // Update the fixture's density
+            const fixture = body.getFixtureList();
+            if (fixture) {
+                fixture.setDensity(desiredDensity);
+                body.resetMassData(); // Recalculate mass based on new density
+            }
         }
 
         // Set user data for compatibility

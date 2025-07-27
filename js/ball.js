@@ -1,5 +1,5 @@
 // Ball Module for creating and managing balls
-import { PhysicsBodyFactory } from './physics.js';
+import { PhysicsBodyFactory, PhysicsConstants } from './physics.js';
 
 export class Ball {
     constructor(sceneManager, x, y) {
@@ -19,6 +19,8 @@ export class Ball {
                 strokeStyle: '#ffffff',
                 lineWidth: 3,
                 visible: true,
+                showNumber: true,
+                displayNumber: this.size, // Show the size number on the ball
             },
             label: 'ball',
         });
@@ -73,8 +75,9 @@ export class Ball {
     }
 
     calculateMass(radius) {
-        return (Math.PI * radius * radius.toFixed(1)) / 1000; // Adjusted mass calculation
-        //   return size;
+        // Use simple mass based on size for better physics stability
+        // Larger balls should be heavier but not with extreme ratios
+        return this.size * 0.5; // Simple mass: size 1 = 0.5, size 5 = 2.5
     }
 
     getColorForSize(size) {
@@ -255,9 +258,9 @@ export class BallManager {
             if (ballInstance && !ballInstance.physicsBody.isStatic()) {
                 const velocity = ballInstance.physicsBody.getVelocity();
                 const speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
-                const isMovingSlowly = speedSquared < 0.01;
+                const isMovingSlowly = speedSquared < PhysicsConstants.slowLinearVelocityThreshold;
                 const angularVelocity = ballInstance.physicsBody.getAngularVelocity();
-                const isRotatingSlowly = Math.abs(angularVelocity) < 0.01;
+                const isRotatingSlowly = Math.abs(angularVelocity) < PhysicsConstants.slowAngularVelocityThreshold;
 
                 // Stop micro-movements: only stop balls that are moving very slowly
                 if (isMovingSlowly) {

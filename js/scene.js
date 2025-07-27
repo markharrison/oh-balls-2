@@ -234,6 +234,28 @@ export class SceneManager {
                 if (ctx.strokeStyle && strokeWidth > 0) {
                     ctx.stroke();
                 }
+
+                // Draw number on ball if specified
+                if (userData.render && userData.render.showNumber && userData.render.displayNumber !== undefined) {
+                    ctx.save();
+
+                    // Set text properties
+                    const fontSize = Math.max(24, renderRadius * 0.8); // Scale font with ball size - doubled from 0.4
+                    ctx.font = `bold ${fontSize}px Arial`;
+                    ctx.fillStyle = '#000000'; // Black text for visibility
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    // Add white outline to text for better visibility
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(userData.render.displayNumber.toString(), 0, 0);
+
+                    // Fill the text
+                    ctx.fillText(userData.render.displayNumber.toString(), 0, 0);
+
+                    ctx.restore();
+                }
             }
         }
 
