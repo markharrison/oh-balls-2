@@ -10,7 +10,7 @@ export class SceneManager {
         
         // Initialize physics engine
         this.physics = new PhysicsEngine().create();
-        this.physics.setGravity(0, -10);
+        this.physics.setGravity(0, 10);
         this.physics.setTimeScale(1);
         
         // Set world reference in factory
