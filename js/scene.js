@@ -7,12 +7,14 @@ export class SceneManager {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        
+
         // Initialize physics engine
+        // Planck.js uses canvas coordinates: Y increases downward
+        // Positive gravity pulls objects toward bottom of screen
         this.physics = new PhysicsEngine().create();
-        this.physics.setGravity(0, 10);
+        this.physics.setGravity(0, 30);
         this.physics.setTimeScale(1);
-        
+
         // Set world reference in factory
         PhysicsBodyFactory.setWorld(this.physics.world);
 
@@ -58,7 +60,7 @@ export class SceneManager {
     setupEventHandlers() {
         this.physics.on('collisionStart', (event) => {
             const collisionPairs = PhysicsUtils.getCollisionPairs(event);
-            
+
             collisionPairs.forEach(({ bodyA, bodyB }) => {
                 // Check for ball-ball collisions
                 const ballA = bodyA.label === 'ball' ? bodyA : null;
@@ -67,7 +69,7 @@ export class SceneManager {
                 if (ballA && ballB) {
                     const ballInstanceA = ballA.customProperties.ballInstance;
                     const ballInstanceB = ballB.customProperties.ballInstance;
-                    
+
                     if (ballInstanceA) ballInstanceA.verticalDrop = false;
                     if (ballInstanceB) ballInstanceB.verticalDrop = false;
                 }
@@ -76,7 +78,7 @@ export class SceneManager {
 
         this.physics.on('collisionEnd', (event) => {
             const ballGroundCollisions = PhysicsUtils.findCollisionByLabels(event, 'ball', 'ground');
-            
+
             ballGroundCollisions.forEach(({ bodyA, bodyB }) => {
                 const ball = bodyA.label === 'ball' ? bodyA : bodyB;
                 // ball.customProperties.ballInstance.keepOnVerticalDrop();
@@ -90,59 +92,41 @@ export class SceneManager {
         const height = 768;
 
         // Create walls (floor, left, right) - no ceiling to allow ball dropping
-        const ground = PhysicsBodyFactory.createRectangle(
-            width / 2, 
-            height - wallThickness / 2, 
-            width, 
-            wallThickness, 
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 0.7, // Reduced from 1.3 to prevent excessive bouncing
-                label: 'ground',
-            }
-        );
+        const ground = PhysicsBodyFactory.createRectangle(width / 2, height - wallThickness / 2, width, wallThickness, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 0.7, // Reduced from 1.3 to prevent excessive bouncing
+            label: 'ground',
+        });
 
-        const leftWall = PhysicsBodyFactory.createRectangle(
-            wallThickness / 2, 
-            height / 2, 
-            wallThickness, 
-            height, 
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
-                label: 'leftWall',
-            }
-        );
+        const leftWall = PhysicsBodyFactory.createRectangle(wallThickness / 2, height / 2, wallThickness, height, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
+            label: 'leftWall',
+        });
 
-        const rightWall = PhysicsBodyFactory.createRectangle(
-            width - wallThickness / 2, 
-            height / 2, 
-            wallThickness, 
-            height, 
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
-                label: 'rightWall',
-            }
-        );
+        const rightWall = PhysicsBodyFactory.createRectangle(width - wallThickness / 2, height / 2, wallThickness, height, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
+            label: 'rightWall',
+        });
 
         this.physics.addBody(ground);
         this.physics.addBody(leftWall);
@@ -202,13 +186,13 @@ export class SceneManager {
             // Render rectangle - get dimensions from AABB
             const aabb = new planck.AABB();
             let first = true;
-            
+
             for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
                 const shape = fixture.getShape();
                 const transform = planckBody.getTransform();
                 const childAABB = new planck.AABB();
                 shape.computeAABB(childAABB, transform, 0);
-                
+
                 if (first) {
                     aabb.lowerBound.set(childAABB.lowerBound);
                     aabb.upperBound.set(childAABB.upperBound);
@@ -228,7 +212,7 @@ export class SceneManager {
         } else {
             // Render circle (ball)
             let physicsRadius = 0;
-            
+
             // Get radius from first circle fixture
             for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
                 const shape = fixture.getShape();
