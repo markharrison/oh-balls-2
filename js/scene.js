@@ -10,7 +10,7 @@ export class SceneManager {
         
         // Initialize physics engine
         this.physics = new PhysicsEngine().create();
-        this.physics.setGravity(0, 0.8);
+        this.physics.setGravity(0, 30);
         this.physics.setTimeScale(1);
         
         // Set world reference in factory
@@ -103,7 +103,7 @@ export class SceneManager {
                     lineWidth: 3,
                 },
                 friction: 0.3,
-                restitution: 1.3, // Significantly increased for more bouncy floor collisions
+                restitution: 0.7, // Reduced from 1.3 to prevent excessive bouncing
                 label: 'ground',
             }
         );
@@ -121,7 +121,7 @@ export class SceneManager {
                     lineWidth: 3,
                 },
                 friction: 0.3,
-                restitution: 1.1, // Increased for more bouncy wall collisions
+                restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
                 label: 'leftWall',
             }
         );
@@ -139,7 +139,7 @@ export class SceneManager {
                     lineWidth: 3,
                 },
                 friction: 0.3,
-                restitution: 1.1, // Increased for more bouncy wall collisions
+                restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
                 label: 'rightWall',
             }
         );

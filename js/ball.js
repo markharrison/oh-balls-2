@@ -13,7 +13,7 @@ export class Ball {
             mass: this.mass,
             friction: 0.5,
             frictionAir: 0.005,
-            restitution: 0.95,
+            restitution: 0.7, // Reduced from 0.95 for more realistic bouncing
             render: {
                 fillStyle: this.color,
                 strokeStyle: '#ffffff',

@@ -12,7 +12,7 @@ export class PhysicsEngine {
     // Initialize the physics engine
     create() {
         this.world = new planck.World({
-            gravity: { x: 0, y: 0.8 }
+            gravity: { x: 0, y: 30 }
         });
 
         // Set up contact listener for event handling
@@ -61,8 +61,9 @@ export class PhysicsEngine {
     // Update physics simulation
     update(deltaTime) {
         if (this.world) {
-            const scaledDeltaTime = (deltaTime / 1000) * (this.timeScale || 1);
-            this.world.step(scaledDeltaTime, 6, 2); // timestep, velocityIterations, positionIterations
+            // Use a more consistent timestep for Plank JS
+            const fixedTimeStep = 1/60; // 60 FPS fixed timestep
+            this.world.step(fixedTimeStep, 8, 3); // timestep, velocityIterations, positionIterations
         }
     }
 
