@@ -13,7 +13,7 @@ export class Ball {
             mass: this.mass,
             friction: 0.5,
             frictionAir: 0.005,
-            restitution: 0.95,
+            restitution: 0.7, // Reduced from 0.95 for more realistic bouncing
             render: {
                 fillStyle: this.color,
                 strokeStyle: '#ffffff',
@@ -24,13 +24,11 @@ export class Ball {
         });
 
         // Reset forces and motion
-        this.physicsBody.customProperties.force.x = 0;
-        this.physicsBody.customProperties.force.y = 0;
-        this.physicsBody.customProperties.torque = 0;
         this.physicsBody.setAngularVelocity(0);
 
         // Store reference to ball instance on the physics body
-        this.physicsBody.customProperties.ballInstance = this;
+        const userData = this.physicsBody.body.getUserData();
+        userData.ballInstance = this;
 
         this.verticalDrop = false;
         this.verticalDropXCoordinate = 512;
@@ -160,7 +158,10 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            vHtml += `${ballBody.ballInstance.getBallStateHtml()}`;
+            const ballInstance = ballBody.getUserData()?.ballInstance;
+            if (ballInstance) {
+                vHtml += `${ballInstance.getBallStateHtml()}`;
+            }
         });
 
         return vHtml;
@@ -189,7 +190,10 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            ballBody.ballInstance.physicsBody.setSleeping(false);
+            const ballInstance = ballBody.getUserData()?.ballInstance;
+            if (ballInstance) {
+                ballInstance.physicsBody.setSleeping(false);
+            }
         });
 
         this.currentBall.release();
@@ -228,7 +232,10 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            ballBody.ballInstance.keepOnVerticalDrop();
+            const ballInstance = ballBody.getUserData()?.ballInstance;
+            if (ballInstance) {
+                ballInstance.keepOnVerticalDrop();
+            }
         });
 
         this.stopJittering();
@@ -244,28 +251,26 @@ export class BallManager {
 
         let ballBodies = this.getBallBodies();
         ballBodies.forEach((ballBody) => {
-            if (!ballBody.isStatic) {
-                const velocity = ballBody.ballInstance.physicsBody.getVelocity();
+            const ballInstance = ballBody.getUserData()?.ballInstance;
+            if (ballInstance && !ballInstance.physicsBody.isStatic()) {
+                const velocity = ballInstance.physicsBody.getVelocity();
                 const speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
                 const isMovingSlowly = speedSquared < 0.01;
-                const angularVelocity = ballBody.ballInstance.physicsBody.getAngularVelocity();
+                const angularVelocity = ballInstance.physicsBody.getAngularVelocity();
                 const isRotatingSlowly = Math.abs(angularVelocity) < 0.01;
 
                 // Stop micro-movements: only stop balls that are moving very slowly
                 if (isMovingSlowly) {
-                    ballBody.ballInstance.physicsBody.setVelocity(0, 0);
-                    ballBody.force.x = 0;
-                    ballBody.force.y = 0;
+                    ballInstance.physicsBody.setVelocity(0, 0);
                 }
 
                 // Check angular velocity separately and stop if it's very small
                 if (isRotatingSlowly) {
-                    ballBody.ballInstance.physicsBody.setAngularVelocity(0);
-                    ballBody.torque = 0;
+                    ballInstance.physicsBody.setAngularVelocity(0);
                 }
 
                 if (isMovingSlowly && isRotatingSlowly && now - this.lastDropTime > 15000) {
-                    ballBody.ballInstance.physicsBody.setSleeping(true);
+                    ballInstance.physicsBody.setSleeping(true);
                 }
             }
         });
@@ -286,12 +291,14 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            const pos = ballBody.ballInstance.getPosition();
-            const isOffScreen = pos.x < 0 || pos.x > canvasWidth || pos.y < 0 || pos.y > canvasHeight;
+            const ballInstance = ballBody.getUserData()?.ballInstance;
+            if (ballInstance) {
+                const pos = ballInstance.getPosition();
+                const isOffScreen = pos.x < 0 || pos.x > canvasWidth || pos.y < 0 || pos.y > canvasHeight;
 
-            if (isOffScreen) {
-                ballBody.ballInstance.destroy();
-                ballBody.ballInstance = null;
+                if (isOffScreen) {
+                    ballInstance.destroy();
+                }
             }
         });
     }
@@ -302,9 +309,10 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            if (ballBody.ballInstance.size == 5) {
-                const pos = ballBody.ballInstance.getPosition();
-                ballBody.ballInstance.setPosition(pos.x - 2000, pos.y);
+            const ballInstance = ballBody.getUserData()?.ballInstance;
+            if (ballInstance && ballInstance.size == 5) {
+                const pos = ballInstance.getPosition();
+                ballInstance.setPosition(pos.x - 2000, pos.y);
             }
         });
     }

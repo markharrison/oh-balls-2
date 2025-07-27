@@ -7,11 +7,16 @@ export class SceneManager {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        
+
         // Initialize physics engine
+        // Planck.js uses canvas coordinates: Y increases downward
+        // Positive gravity pulls objects toward bottom of screen
         this.physics = new PhysicsEngine().create();
-        this.physics.setGravity(0, 0.8);
+        this.physics.setGravity(0, 30);
         this.physics.setTimeScale(1);
+
+        // Set world reference in factory
+        PhysicsBodyFactory.setWorld(this.physics.world);
 
         this.clock = {
             deltaTime: 0,
@@ -55,22 +60,25 @@ export class SceneManager {
     setupEventHandlers() {
         this.physics.on('collisionStart', (event) => {
             const collisionPairs = PhysicsUtils.getCollisionPairs(event);
-            
+
             collisionPairs.forEach(({ bodyA, bodyB }) => {
                 // Check for ball-ball collisions
                 const ballA = bodyA.label === 'ball' ? bodyA : null;
                 const ballB = bodyB.label === 'ball' ? bodyB : null;
 
                 if (ballA && ballB) {
-                    ballA.customProperties.ballInstance.verticalDrop = false;
-                    ballB.customProperties.ballInstance.verticalDrop = false;
+                    const ballInstanceA = ballA.customProperties.ballInstance;
+                    const ballInstanceB = ballB.customProperties.ballInstance;
+
+                    if (ballInstanceA) ballInstanceA.verticalDrop = false;
+                    if (ballInstanceB) ballInstanceB.verticalDrop = false;
                 }
             });
         });
 
         this.physics.on('collisionEnd', (event) => {
             const ballGroundCollisions = PhysicsUtils.findCollisionByLabels(event, 'ball', 'ground');
-            
+
             ballGroundCollisions.forEach(({ bodyA, bodyB }) => {
                 const ball = bodyA.label === 'ball' ? bodyA : bodyB;
                 // ball.customProperties.ballInstance.keepOnVerticalDrop();
@@ -84,59 +92,41 @@ export class SceneManager {
         const height = 768;
 
         // Create walls (floor, left, right) - no ceiling to allow ball dropping
-        const ground = PhysicsBodyFactory.createRectangle(
-            width / 2, 
-            height - wallThickness / 2, 
-            width, 
-            wallThickness, 
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 1.3, // Significantly increased for more bouncy floor collisions
-                label: 'ground',
-            }
-        );
+        const ground = PhysicsBodyFactory.createRectangle(width / 2, height - wallThickness / 2, width, wallThickness, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 0.7, // Reduced from 1.3 to prevent excessive bouncing
+            label: 'ground',
+        });
 
-        const leftWall = PhysicsBodyFactory.createRectangle(
-            wallThickness / 2, 
-            height / 2, 
-            wallThickness, 
-            height, 
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 1.1, // Increased for more bouncy wall collisions
-                label: 'leftWall',
-            }
-        );
+        const leftWall = PhysicsBodyFactory.createRectangle(wallThickness / 2, height / 2, wallThickness, height, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
+            label: 'leftWall',
+        });
 
-        const rightWall = PhysicsBodyFactory.createRectangle(
-            width - wallThickness / 2, 
-            height / 2, 
-            wallThickness, 
-            height, 
-            {
-                isStatic: true,
-                render: {
-                    fillStyle: '#00ffff',
-                    strokeStyle: '#ffffff',
-                    lineWidth: 3,
-                },
-                friction: 0.3,
-                restitution: 1.1, // Increased for more bouncy wall collisions
-                label: 'rightWall',
-            }
-        );
+        const rightWall = PhysicsBodyFactory.createRectangle(width - wallThickness / 2, height / 2, wallThickness, height, {
+            isStatic: true,
+            render: {
+                fillStyle: '#00ffff',
+                strokeStyle: '#ffffff',
+                lineWidth: 3,
+            },
+            friction: 0.3,
+            restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
+            label: 'rightWall',
+        });
 
         this.physics.addBody(ground);
         this.physics.addBody(leftWall);
@@ -171,29 +161,49 @@ export class SceneManager {
 
     renderBody(body) {
         const ctx = this.ctx;
-        // Handle both PhysicsBody wrapper and raw MatterJS body
-        const physicsBody = body.body ? body.body : body;
-        const position = physicsBody.position;
-        const angle = physicsBody.angle;
+        // Handle both PhysicsBody wrapper and raw Plank body
+        const planckBody = body.body ? body.body : body;
+        const position = planckBody.getPosition();
+        const angle = planckBody.getAngle();
+        const userData = planckBody.getUserData() || {};
 
         ctx.save();
         ctx.translate(position.x, position.y);
         ctx.rotate(angle);
 
-        if (physicsBody.render.fillStyle) {
-            ctx.fillStyle = physicsBody.render.fillStyle;
+        if (userData.render && userData.render.fillStyle) {
+            ctx.fillStyle = userData.render.fillStyle;
         }
 
-        if (physicsBody.render.strokeStyle) {
-            ctx.strokeStyle = physicsBody.render.strokeStyle;
-            ctx.lineWidth = physicsBody.render.lineWidth || 1;
+        if (userData.render && userData.render.strokeStyle) {
+            ctx.strokeStyle = userData.render.strokeStyle;
+            ctx.lineWidth = userData.render.lineWidth || 1;
         }
 
         // Render based on body type
-        if ((physicsBody.label && physicsBody.label.includes('Wall')) || physicsBody.label === 'ground') {
-            // Render rectangle
-            const width = physicsBody.bounds.max.x - physicsBody.bounds.min.x;
-            const height = physicsBody.bounds.max.y - physicsBody.bounds.min.y;
+        const label = userData.label || '';
+        if (label.includes('Wall') || label === 'ground') {
+            // Render rectangle - get dimensions from AABB
+            const aabb = new planck.AABB();
+            let first = true;
+
+            for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
+                const shape = fixture.getShape();
+                const transform = planckBody.getTransform();
+                const childAABB = new planck.AABB();
+                shape.computeAABB(childAABB, transform, 0);
+
+                if (first) {
+                    aabb.lowerBound.set(childAABB.lowerBound);
+                    aabb.upperBound.set(childAABB.upperBound);
+                    first = false;
+                } else {
+                    aabb.combine(childAABB);
+                }
+            }
+
+            const width = aabb.upperBound.x - aabb.lowerBound.x;
+            const height = aabb.upperBound.y - aabb.lowerBound.y;
 
             ctx.fillRect(-width / 2, -height / 2, width, height);
             if (ctx.strokeStyle) {
@@ -201,13 +211,15 @@ export class SceneManager {
             }
         } else {
             // Render circle (ball)
-            // Use the actual physics body radius from the circle shape
-            let physicsRadius;
-            if (physicsBody.circleRadius !== undefined) {
-                physicsRadius = physicsBody.circleRadius;
-            } else {
-                // Fallback to bounding box calculation
-                physicsRadius = (physicsBody.bounds.max.x - physicsBody.bounds.min.x) / 2;
+            let physicsRadius = 0;
+
+            // Get radius from first circle fixture
+            for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
+                const shape = fixture.getShape();
+                if (shape.getType() === planck.Circle.TYPE) {
+                    physicsRadius = shape.getRadius();
+                    break;
+                }
             }
 
             // Adjust rendering radius so stroke doesn't extend beyond physics boundary
