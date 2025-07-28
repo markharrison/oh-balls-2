@@ -91,41 +91,50 @@ export class SceneManager {
         const width = 1024;
         const height = 768;
 
-        // Create walls (floor, left, right) - no ceiling to allow ball dropping
+        const renderGround = {
+            fillStyle: '#00ffff',
+            strokeStyle: '#ffffff',
+            lineWidth: 3,
+            width: width,
+            height: wallThickness,
+        };
+
         const ground = PhysicsBodyFactory.createRectangle(width / 2, height - wallThickness / 2, width, wallThickness, {
             isStatic: true,
-            render: {
-                fillStyle: '#00ffff',
-                strokeStyle: '#ffffff',
-                lineWidth: 3,
-            },
             friction: 0.3,
-            restitution: 0.7, // Reduced from 1.3 to prevent excessive bouncing
-            label: 'ground',
+            restitution: 0.7,
+            userData: {
+                label: 'ground',
+                render: renderGround,
+            },
         });
+
+        const renderWall = {
+            fillStyle: '#00ffff',
+            strokeStyle: '#ffffff',
+            lineWidth: 3,
+            width: wallThickness,
+            height: height,
+        };
 
         const leftWall = PhysicsBodyFactory.createRectangle(wallThickness / 2, height / 2, wallThickness, height, {
             isStatic: true,
-            render: {
-                fillStyle: '#00ffff',
-                strokeStyle: '#ffffff',
-                lineWidth: 3,
-            },
             friction: 0.3,
-            restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
-            label: 'leftWall',
+            restitution: 0.6,
+            userData: {
+                label: 'leftWall',
+                render: renderWall,
+            },
         });
 
         const rightWall = PhysicsBodyFactory.createRectangle(width - wallThickness / 2, height / 2, wallThickness, height, {
             isStatic: true,
-            render: {
-                fillStyle: '#00ffff',
-                strokeStyle: '#ffffff',
-                lineWidth: 3,
-            },
             friction: 0.3,
-            restitution: 0.6, // Reduced from 1.1 to prevent excessive bouncing
-            label: 'rightWall',
+            restitution: 0.6,
+            userData: {
+                label: 'rightWall',
+                render: renderWall,
+            },
         });
 
         this.physics.addBody(ground);
@@ -157,7 +166,76 @@ export class SceneManager {
         this.physics.removeBody(body);
     }
 
-    // Custom rendering method
+    renderWallOrFloor(body, ctx) {
+        let render = body.getUserData().render;
+
+        ctx.fillStyle = render.fillStyle;
+        ctx.strokeStyle = render.strokeStyle;
+        ctx.lineWidth = render.lineWidth;
+
+        // for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
+        //     const shape = fixture.getShape();
+        //     const transform = planckBody.getTransform();
+        //     const childAABB = new planck.AABB();
+        //     shape.computeAABB(childAABB, transform, 0);
+
+        //     if (first) {
+        //         aabb.lowerBound.set(childAABB.lowerBound);
+        //         aabb.upperBound.set(childAABB.upperBound);
+        //         first = false;
+        //     } else {
+        //         aabb.combine(childAABB);
+        //     }
+        // }
+
+        const width = render.width;
+        const height = render.height;
+
+        ctx.fillRect(-width / 2, -height / 2, width, height);
+        ctx.strokeRect(-width / 2, -height / 2, width, height);
+    }
+
+    renderBall(body, ctx) {
+        let render = body.getUserData().render;
+
+        ctx.fillStyle = render.fillStyle;
+        ctx.strokeStyle = render.strokeStyle;
+        ctx.lineWidth = render.lineWidth;
+
+        let physicsRadius = render.radius;
+
+        // Adjust rendering radius so stroke doesn't extend beyond physics boundary
+        const strokeWidth = ctx.lineWidth || 0;
+        const renderRadius = physicsRadius - strokeWidth / 2;
+
+        if (renderRadius > 0) {
+            ctx.beginPath();
+            ctx.arc(0, 0, renderRadius, 0, 6.28); // Use 6.28 instead of 2 * Math.PI for simplicity
+            ctx.fill();
+
+            if (ctx.strokeStyle && strokeWidth > 0) {
+                ctx.stroke();
+            }
+
+            if (render.showNumber) {
+                ctx.save();
+
+                const fontSize = Math.max(24, renderRadius * 0.8);
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.fillStyle = '#000000';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.strokeText(render.size.toString(), 0, 0);
+
+                ctx.fillText(render.size.toString(), 0, 0);
+
+                ctx.restore();
+            }
+        }
+    }
 
     renderBody(body) {
         const ctx = this.ctx;
@@ -171,92 +249,12 @@ export class SceneManager {
         ctx.translate(position.x, position.y);
         ctx.rotate(angle);
 
-        if (userData.render && userData.render.fillStyle) {
-            ctx.fillStyle = userData.render.fillStyle;
-        }
-
-        if (userData.render && userData.render.strokeStyle) {
-            ctx.strokeStyle = userData.render.strokeStyle;
-            ctx.lineWidth = userData.render.lineWidth || 1;
-        }
-
         // Render based on body type
         const label = userData.label || '';
         if (label.includes('Wall') || label === 'ground') {
-            // Render rectangle - get dimensions from AABB
-            const aabb = new planck.AABB();
-            let first = true;
-
-            for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
-                const shape = fixture.getShape();
-                const transform = planckBody.getTransform();
-                const childAABB = new planck.AABB();
-                shape.computeAABB(childAABB, transform, 0);
-
-                if (first) {
-                    aabb.lowerBound.set(childAABB.lowerBound);
-                    aabb.upperBound.set(childAABB.upperBound);
-                    first = false;
-                } else {
-                    aabb.combine(childAABB);
-                }
-            }
-
-            const width = aabb.upperBound.x - aabb.lowerBound.x;
-            const height = aabb.upperBound.y - aabb.lowerBound.y;
-
-            ctx.fillRect(-width / 2, -height / 2, width, height);
-            if (ctx.strokeStyle) {
-                ctx.strokeRect(-width / 2, -height / 2, width, height);
-            }
+            this.renderWallOrFloor(planckBody, ctx);
         } else {
-            // Render circle (ball)
-            let physicsRadius = 0;
-
-            // Get radius from first circle fixture
-            for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
-                const shape = fixture.getShape();
-                if (shape.getType() === planck.Circle.TYPE) {
-                    physicsRadius = shape.getRadius();
-                    break;
-                }
-            }
-
-            // Adjust rendering radius so stroke doesn't extend beyond physics boundary
-            const strokeWidth = ctx.lineWidth || 0;
-            const renderRadius = physicsRadius - strokeWidth / 2;
-
-            if (renderRadius > 0) {
-                ctx.beginPath();
-                ctx.arc(0, 0, renderRadius, 0, 6.28); // Use 6.28 instead of 2 * Math.PI for simplicity
-                ctx.fill();
-
-                if (ctx.strokeStyle && strokeWidth > 0) {
-                    ctx.stroke();
-                }
-
-                // Draw number on ball if specified
-                if (userData.render && userData.render.showNumber && userData.render.displayNumber !== undefined) {
-                    ctx.save();
-
-                    // Set text properties
-                    const fontSize = Math.max(24, renderRadius * 0.8); // Scale font with ball size - doubled from 0.4
-                    ctx.font = `bold ${fontSize}px Arial`;
-                    ctx.fillStyle = '#000000'; // Black text for visibility
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-
-                    // Add white outline to text for better visibility
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    ctx.strokeText(userData.render.displayNumber.toString(), 0, 0);
-
-                    // Fill the text
-                    ctx.fillText(userData.render.displayNumber.toString(), 0, 0);
-
-                    ctx.restore();
-                }
-            }
+            this.renderBall(planckBody, ctx);
         }
 
         ctx.restore();
@@ -277,11 +275,10 @@ export class SceneManager {
 
     renderScene() {
         const ballInfoElement = document.getElementById('currentBallSize');
-        ballInfoElement.textContent = `Current Ball: Size xxx`;
+        ballInfoElement.textContent = 'Harrison Digital';
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Fill background
         this.ctx.fillStyle = '#111111';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 

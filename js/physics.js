@@ -5,8 +5,8 @@
 // Physics engine specific constants
 export const PhysicsConstants = {
     // Velocity thresholds for stopping jitter (Planck.js specific values)
-    slowLinearVelocityThreshold: 0.5, // speedSquared threshold
-    slowAngularVelocityThreshold: 0.02, // absolute angular velocity threshold
+    slowLinearVelocityThreshold: 1.0, // speedSquared threshold
+    slowAngularVelocityThreshold: 0.04, // absolute angular velocity threshold
 };
 
 export class PhysicsEngine {
@@ -335,12 +335,9 @@ export class PhysicsBodyFactory {
 
         body.createFixture(fixtureDef);
 
-        // Set user data for compatibility
         const userData = {
             id: PhysicsBodyFactory.generateId(),
-            label: options.label || 'rectangle',
-            render: options.render || {},
-            ballInstance: options.ballInstance || null,
+            ...options.userData,
         };
 
         body.setUserData(userData);
@@ -391,13 +388,9 @@ export class PhysicsBodyFactory {
             }
         }
 
-        // Set user data for compatibility
         const userData = {
             id: PhysicsBodyFactory.generateId(),
-            label: options.label || 'circle',
-            render: options.render || {},
-            ballInstance: options.ballInstance || null,
-            circleRadius: radius,
+            ...options.userData,
         };
 
         body.setUserData(userData);

@@ -8,32 +8,34 @@ export class Ball {
         this.radius = this.calculateRadius(this.size);
         this.mass = this.calculateMass(this.radius);
         this.color = this.getColorForSize(this.size);
+        this.verticalDrop = false;
+        this.verticalDropXCoordinate = 512;
+
+        const render = {
+            radius: this.radius,
+            fillStyle: this.color,
+            strokeStyle: '#ffffff',
+            lineWidth: 3,
+            visible: true,
+            showNumber: true,
+            size: this.size,
+        };
+
+        const userData = {
+            label: 'ball',
+            ballInstance: this,
+            render: render,
+        };
 
         this.physicsBody = PhysicsBodyFactory.createCircle(x, y, this.radius, {
+            label: 'ball',
             mass: this.mass,
             friction: 0.5,
             frictionAir: 0.005,
             restitution: 0.7, // Reduced from 0.95 for more realistic bouncing
-            render: {
-                fillStyle: this.color,
-                strokeStyle: '#ffffff',
-                lineWidth: 3,
-                visible: true,
-                showNumber: true,
-                displayNumber: this.size, // Show the size number on the ball
-            },
-            label: 'ball',
+            userData: userData,
         });
 
-        // Reset forces and motion
-        this.physicsBody.setAngularVelocity(0);
-
-        // Store reference to ball instance on the physics body
-        const userData = this.physicsBody.body.getUserData();
-        userData.ballInstance = this;
-
-        this.verticalDrop = false;
-        this.verticalDropXCoordinate = 512;
         this.physicsBody.setStatic(true);
 
         // Add to scene
@@ -288,8 +290,8 @@ export class BallManager {
 
         console.log('Cleaning up balls... ' + now);
 
-        const canvasWidth = 1024;
-        const canvasHeight = 768;
+        const canvasWidth = this.sceneManager.canvas.width;
+        const canvasHeight = this.sceneManager.canvas.height;
 
         let ballBodies = this.getBallBodies();
 
