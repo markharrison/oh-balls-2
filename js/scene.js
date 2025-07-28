@@ -122,7 +122,7 @@ export class SceneManager {
             friction: 0.3,
             restitution: 0.6,
             userData: {
-                label: 'leftWall',
+                label: 'leftwall',
                 render: renderWall,
             },
         });
@@ -132,7 +132,7 @@ export class SceneManager {
             friction: 0.3,
             restitution: 0.6,
             userData: {
-                label: 'rightWall',
+                label: 'rightwall',
                 render: renderWall,
             },
         });
@@ -166,7 +166,8 @@ export class SceneManager {
         this.physics.removeBody(body);
     }
 
-    renderWallOrFloor(body, ctx) {
+    renderWallOrFloor(body) {
+        const ctx = this.ctx;
         let render = body.getUserData().render;
 
         ctx.fillStyle = render.fillStyle;
@@ -195,7 +196,9 @@ export class SceneManager {
         ctx.strokeRect(-width / 2, -height / 2, width, height);
     }
 
-    renderBall(body, ctx) {
+    renderBall(body) {
+        const ctx = this.ctx;
+
         let render = body.getUserData().render;
 
         ctx.fillStyle = render.fillStyle;
@@ -239,11 +242,10 @@ export class SceneManager {
 
     renderBody(body) {
         const ctx = this.ctx;
-        // Handle both PhysicsBody wrapper and raw Plank body
-        const planckBody = body.body ? body.body : body;
-        const position = planckBody.getPosition();
-        const angle = planckBody.getAngle();
-        const userData = planckBody.getUserData() || {};
+
+        const position = body.getPosition();
+        const angle = body.getAngle();
+        const userData = body.getUserData() || {};
 
         ctx.save();
         ctx.translate(position.x, position.y);
@@ -251,13 +253,25 @@ export class SceneManager {
 
         // Render based on body type
         const label = userData.label || '';
-        if (label.includes('Wall') || label === 'ground') {
-            this.renderWallOrFloor(planckBody, ctx);
-        } else {
-            this.renderBall(planckBody, ctx);
+
+        switch (label) {
+            case 'leftwall':
+            case 'rightwall':
+            case 'ground':
+                this.renderWallOrFloor(body);
+                break;
+            default:
+                this.renderBall(body);
+                break;
         }
 
         ctx.restore();
+
+        // if (label.includes('Wall') || label === 'ground') {
+        //     this.renderWallOrFloor(planckBody, ctx);
+        // } else {
+        //     this.renderBall(planckBody, ctx);
+        // }
     }
 
     updatePhysics(deltaTime) {
