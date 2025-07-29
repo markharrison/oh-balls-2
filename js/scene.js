@@ -88,8 +88,8 @@ export class SceneManager {
 
     setupBoundaries() {
         const wallThickness = 16;
-        const width = 1024;
-        const height = 768;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
 
         const renderGround = {
             fillStyle: '#00ffff',

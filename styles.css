@@ -1,4 +1,7 @@
 /* Modern Dark UI Theme CSS */
+:root {
+    --canvas-width: 1024px;
+}
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 * {
@@ -45,7 +48,7 @@ body::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 1024px;
+    width: var(--canvas-width);
     margin-bottom: 15px;
     padding: 20px 30px;
     background: rgba(13, 71, 161, 0.25);
@@ -91,7 +94,7 @@ body::before {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 1024px;
+    width: var(--canvas-width);
     margin-top: 15px;
     padding: 18px 30px;
     background: rgba(26, 35, 126, 0.25);

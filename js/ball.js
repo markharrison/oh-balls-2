@@ -181,8 +181,8 @@ export class BallManager {
             return;
         }
 
-        const x = 512; // Center of canvas (1024/2)
-        const y = 50; // Near top
+        const x = this.sceneManager.canvas.width / 2;
+        const y = 50;
 
         this.currentBall = new Ball(this.sceneManager, x, y);
     }
@@ -221,7 +221,7 @@ export class BallManager {
         const ballRadius = this.currentBall.radius;
         const wallThickness = 16; // Updated wall thickness
         const minX = wallThickness + ballRadius;
-        const maxX = 1024 - wallThickness - ballRadius;
+        const maxX = this.sceneManager.canvas.width - wallThickness - ballRadius;
 
         newX = Math.max(minX, Math.min(maxX, newX));
 
