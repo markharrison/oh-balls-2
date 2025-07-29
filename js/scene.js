@@ -4,9 +4,13 @@ import { DiagnosticPanel } from './diagnostics.js';
 import { PhysicsEngine, PhysicsBodyFactory, PhysicsUtils } from './physics.js';
 
 export class SceneManager {
-    constructor(canvas) {
+    constructor(canvas, inputHandler, diagnosticsPanel) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
+        this.inputHandler = inputHandler;
+        this.diagnostics = diagnosticsPanel;
+
+        this.inputHandler.registerSceneManager(this);
 
         // Initialize physics engine
         // Planck.js uses canvas coordinates: Y increases downward
@@ -31,8 +35,6 @@ export class SceneManager {
         };
 
         this.ballManager = new BallManager(this);
-        this.inputHandler = new InputHandler(this.ballManager);
-        this.diagnostics = new DiagnosticPanel(this);
 
         this.setupBoundaries();
         this.setupEventHandlers();
@@ -182,21 +184,6 @@ export class SceneManager {
         ctx.strokeStyle = render.strokeStyle;
         ctx.lineWidth = render.lineWidth;
 
-        // for (let fixture = planckBody.getFixtureList(); fixture; fixture = fixture.getNext()) {
-        //     const shape = fixture.getShape();
-        //     const transform = planckBody.getTransform();
-        //     const childAABB = new planck.AABB();
-        //     shape.computeAABB(childAABB, transform, 0);
-
-        //     if (first) {
-        //         aabb.lowerBound.set(childAABB.lowerBound);
-        //         aabb.upperBound.set(childAABB.upperBound);
-        //         first = false;
-        //     } else {
-        //         aabb.combine(childAABB);
-        //     }
-        // }
-
         const width = render.width;
         const height = render.height;
 
@@ -296,6 +283,24 @@ export class SceneManager {
                     break;
             }
         });
+    }
+
+    inputKeyPressed(code) {
+        switch (code) {
+            case 'ArrowLeft':
+                this.ballManager.moveCurrentBall(-1);
+                break;
+            case 'ArrowRight':
+                this.ballManager.moveCurrentBall(1);
+                break;
+            case 'ArrowDown':
+            case 'Space':
+                this.ballManager.dropCurrentBall();
+                break;
+            case 'KeyT':
+                this.ballManager.testBalls();
+                break;
+        }
     }
 
     updateFrame() {

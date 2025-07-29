@@ -1,50 +1,41 @@
 // Input Handling Module
 export class InputHandler {
-    constructor(ballManager, diagnosticsPanel) {
-        this.ballManager = ballManager;
-        this.diagnosticsPanel = diagnosticsPanel;
+    constructor() {
+        this.diagnosticsPanel = null;
+        this.sceneManager = null;
         this.keys = {
             left: false,
             right: false,
-            drop: false,
         };
 
         // Track key press state to prevent key repeat issues
         this.keyPressed = {
             drop: false,
+            d: false,
+            t: false,
         };
 
         this.setupEventListeners();
     }
 
-    setupEventListeners() {
-        // Keyboard events
-        document.addEventListener('keydown', (event) => {
-            this.handleKeyDown(event);
-        });
+    registerDiagnosticsPanel(diagnosticsPanel) {
+        this.diagnosticsPanel = diagnosticsPanel;
+    }
 
+    registerSceneManager(sceneManager) {
+        this.sceneManager = sceneManager;
+    }
+
+    setupEventListeners() {
         document.addEventListener('keyup', (event) => {
             this.handleKeyUp(event);
         });
 
-        // Prevent default behavior for arrow keys to avoid page scrolling
         document.addEventListener('keydown', (event) => {
             if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'Space'].includes(event.code)) {
                 event.preventDefault();
             }
-        });
-
-        // Diagnostics panel toggle (press D)
-        document.addEventListener('keydown', (event) => {
-            if (event.key.toLowerCase() === 'd' && this.diagnosticsPanel) {
-                this.diagnosticsPanel.toggle();
-            }
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key.toLowerCase() === 't') {
-                this.ballManager.testBalls();
-            }
+            this.handleKeyDown(event);
         });
     }
 
@@ -58,11 +49,24 @@ export class InputHandler {
                 break;
             case 'ArrowDown':
             case 'Space':
-                this.keys.drop = true;
                 // Only drop if this is a new key press (not a repeat)
                 if (!this.keyPressed.drop) {
                     this.keyPressed.drop = true;
-                    this.dropBall();
+                    this.sceneManager.inputKeyPressed(event.code);
+                }
+                break;
+            case 'KeyD':
+                if (!this.keyPressed.d) {
+                    this.keyPressed.d = true;
+                    alert('D panel toggled');
+                    this.diagnosticsPanel.toggle();
+                }
+                break;
+            case 'KeyT':
+                if (!this.keyPressed.t) {
+                    this.keyPressed.t = true;
+                    alert('Testing ball drop functionality');
+                    this.sceneManager.inputKeyPressed(event.code);
                 }
                 break;
         }
@@ -78,25 +82,22 @@ export class InputHandler {
                 break;
             case 'ArrowDown':
             case 'Space':
-                this.keys.drop = false;
-                this.keyPressed.drop = false; // Reset key press state
+                this.keyPressed.drop = false;
+                break;
+            case 'KeyD':
+                this.keyPressed.d = false;
+                break;
+            case 'KeyT':
+                this.keyPressed.t = false;
                 break;
         }
     }
 
-    dropBall() {
-        // Drop the current ball
-        this.ballManager.dropCurrentBall();
-    }
-
     getInput() {
-        // Process continuous input (called every frame)
         if (this.keys.left) {
-            this.ballManager.moveCurrentBall(-1); // Move left
-        }
-
-        if (this.keys.right) {
-            this.ballManager.moveCurrentBall(1); // Move right
+            this.sceneManager.inputKeyPressed('ArrowLeft');
+        } else if (this.keys.right) {
+            this.sceneManager.inputKeyPressed('ArrowRight');
         }
     }
 

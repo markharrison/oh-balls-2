@@ -1,13 +1,19 @@
 // Main Game Controller
 import { SceneManager } from './scene.js';
+import { InputHandler } from './input.js';
+import { DiagnosticPanel } from './diagnostics.js';
 
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.running = false;
 
+        this.diagnosticsPanel = new DiagnosticPanel();
+        this.inputHandler = new InputHandler();
+        this.inputHandler.registerDiagnosticsPanel(this.diagnosticsPanel);
+
         // Initialize core systems
-        this.sceneManager = new SceneManager(this.canvas);
+        this.sceneManager = new SceneManager(this.canvas, this.inputHandler, this.diagnosticsPanel);
     }
 
     start() {
