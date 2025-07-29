@@ -4,6 +4,8 @@ export class DiagnosticPanel {
         this.scene = scene;
         this.enabled = false;
         this.panel = null;
+        this.ballManager = null;
+        this.sceneManager = null;
 
         this.createPanel();
     }
@@ -38,13 +40,13 @@ export class DiagnosticPanel {
         document.body.appendChild(this.panel);
     }
 
-    // setupKeyboardControls() {
-    //     document.addEventListener('keydown', (event) => {
-    //         if (event.key.toLowerCase() === 'd') {
-    //             this.toggle();
-    //         }
-    //     });
-    // }
+    registerBallManager(ballManager) {
+        this.ballManager = ballManager;
+    }
+
+    registerSceneManager(sceneManager) {
+        this.sceneManager = sceneManager;
+    }
 
     toggle() {
         this.enabled = !this.enabled;
@@ -57,16 +59,23 @@ export class DiagnosticPanel {
             const content = document.getElementById('diagnostic-content');
             if (!content) return;
 
-            content.innerHTML = `
-            <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                ${this.scene.getSceneStateHtml()}
-            </div>
+            content.innerHTML = ''; // Clear previous content
 
-            <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                ${this.scene.ballManager.getBallsStateHtml()}
-            </div>
+            if (this.sceneManager) {
+                content.innerHTML += `
+                    <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
+                        ${this.sceneManager.getSceneStateHtml()}
+                    </div>
+                `;
+            }
 
-        `;
+            if (this.ballManager) {
+                content.innerHTML += `
+                    <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
+                        ${this.ballManager.getBallsStateHtml()}
+                    </div>
+                `;
+            }
         }
     }
 

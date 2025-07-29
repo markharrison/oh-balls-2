@@ -6,7 +6,6 @@ export class Ball {
         this.sceneManager = sceneManager;
         this.size = this.generateRandomSize();
         this.radius = this.calculateRadius(this.size);
-        this.mass = this.calculateMass(this.radius);
         this.color = this.getColorForSize(this.size);
         this.verticalDrop = false;
         this.verticalDropXCoordinate = 512;
@@ -23,13 +22,13 @@ export class Ball {
 
         const userData = {
             label: 'ball',
-            ballInstance: this,
+            ball: this,
             render: render,
         };
 
         this.physicsBody = PhysicsBodyFactory.createCircle(x, y, this.radius, {
             label: 'ball',
-            mass: this.mass,
+            desnity: 1,
             friction: 0.5,
             frictionAir: 0.005,
             restitution: 0.7, // Reduced from 0.95 for more realistic bouncing
@@ -45,6 +44,8 @@ export class Ball {
     getBallStateHtml() {
         let vHtml = ``;
 
+        let mass = this.radius * this.radius * Math.PI * 1.0;
+
         vHtml += this.physicsBody.id + ':&nbsp;';
         vHtml +=
             '<svg width="12" height="12" style="vertical-align:middle;"><circle cx="6" cy="6" r="6" fill="' +
@@ -52,7 +53,7 @@ export class Ball {
             '"/></svg>&nbsp;';
 
         vHtml += 'Size:' + this.size + '&nbsp;';
-        vHtml += 'Mass:' + this.mass.toFixed(1) + '&nbsp;';
+        vHtml += 'Mass:' + mass.toFixed(1) + '&nbsp;';
         vHtml += 'Speed:' + this.physicsBody.speed.toFixed(3) + '&nbsp;';
         const pos = this.physicsBody.getPosition();
         vHtml += 'Pos:' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + '&nbsp;';
@@ -74,12 +75,6 @@ export class Ball {
 
     calculateRadius(size) {
         return 25 + (size - 1) * 5;
-    }
-
-    calculateMass(radius) {
-        // Use simple mass based on size for better physics stability
-        // Larger balls should be heavier but not with extreme ratios
-        return this.size * 0.5; // Simple mass: size 1 = 0.5, size 5 = 2.5
     }
 
     getColorForSize(size) {
@@ -163,9 +158,9 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            const ballInstance = ballBody.getUserData()?.ballInstance;
-            if (ballInstance) {
-                vHtml += `${ballInstance.getBallStateHtml()}`;
+            const ball = ballBody.getUserData()?.ball;
+            if (ball) {
+                vHtml += `${ball.getBallStateHtml()}`;
             }
         });
 
@@ -195,9 +190,9 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            const ballInstance = ballBody.getUserData()?.ballInstance;
-            if (ballInstance) {
-                ballInstance.physicsBody.setSleeping(false);
+            const ball = ballBody.getUserData()?.ball;
+            if (ball) {
+                ball.physicsBody.setSleeping(false);
             }
         });
 
@@ -237,9 +232,9 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            const ballInstance = ballBody.getUserData()?.ballInstance;
-            if (ballInstance) {
-                ballInstance.keepOnVerticalDrop();
+            const ball = ballBody.getUserData()?.ball;
+            if (ball) {
+                ball.keepOnVerticalDrop();
             }
         });
 
@@ -256,26 +251,26 @@ export class BallManager {
 
         let ballBodies = this.getBallBodies();
         ballBodies.forEach((ballBody) => {
-            const ballInstance = ballBody.getUserData()?.ballInstance;
-            if (ballInstance && !ballInstance.physicsBody.isStatic()) {
-                const velocity = ballInstance.physicsBody.getVelocity();
+            const ball = ballBody.getUserData()?.ball;
+            if (ball && !ball.physicsBody.isStatic()) {
+                const velocity = ball.physicsBody.getVelocity();
                 const speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
                 const isMovingSlowly = speedSquared < PhysicsConstants.slowLinearVelocityThreshold;
-                const angularVelocity = ballInstance.physicsBody.getAngularVelocity();
+                const angularVelocity = ball.physicsBody.getAngularVelocity();
                 const isRotatingSlowly = Math.abs(angularVelocity) < PhysicsConstants.slowAngularVelocityThreshold;
 
                 // Stop micro-movements: only stop balls that are moving very slowly
                 if (isMovingSlowly) {
-                    ballInstance.physicsBody.setVelocity(0, 0);
+                    ball.physicsBody.setVelocity(0, 0);
                 }
 
                 // Check angular velocity separately and stop if it's very small
                 if (isRotatingSlowly) {
-                    ballInstance.physicsBody.setAngularVelocity(0);
+                    ball.physicsBody.setAngularVelocity(0);
                 }
 
                 if (isMovingSlowly && isRotatingSlowly && now - this.lastDropTime > 15000) {
-                    ballInstance.physicsBody.setSleeping(true);
+                    ball.physicsBody.setSleeping(true);
                 }
             }
         });
@@ -296,13 +291,13 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            const ballInstance = ballBody.getUserData()?.ballInstance;
-            if (ballInstance) {
-                const pos = ballInstance.getPosition();
+            const ball = ballBody.getUserData()?.ball;
+            if (ball) {
+                const pos = ball.getPosition();
                 const isOffScreen = pos.x < 0 || pos.x > canvasWidth || pos.y < 0 || pos.y > canvasHeight;
 
                 if (isOffScreen) {
-                    ballInstance.destroy();
+                    ball.destroy();
                 }
             }
         });
@@ -314,10 +309,10 @@ export class BallManager {
         let ballBodies = this.getBallBodies();
 
         ballBodies.forEach((ballBody) => {
-            const ballInstance = ballBody.getUserData()?.ballInstance;
-            if (ballInstance && ballInstance.size == 5) {
-                const pos = ballInstance.getPosition();
-                ballInstance.setPosition(pos.x - 2000, pos.y);
+            const ball = ballBody.getUserData()?.ball;
+            if (ball && ball.size == 5) {
+                const pos = ball.getPosition();
+                ball.setPosition(pos.x - 2000, pos.y);
             }
         });
     }

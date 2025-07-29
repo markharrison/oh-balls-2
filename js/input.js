@@ -58,7 +58,6 @@ export class InputHandler {
             case 'KeyD':
                 if (!this.keyPressed.d) {
                     this.keyPressed.d = true;
-                    alert('D panel toggled');
                     this.diagnosticsPanel.toggle();
                 }
                 break;

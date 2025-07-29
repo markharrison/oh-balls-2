@@ -1,20 +1,15 @@
 import { BallManager } from './ball.js';
-import { InputHandler } from './input.js';
-import { DiagnosticPanel } from './diagnostics.js';
 import { PhysicsEngine, PhysicsBodyFactory, PhysicsUtils } from './physics.js';
 
 export class SceneManager {
-    constructor(canvas, inputHandler, diagnosticsPanel) {
+    constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.inputHandler = inputHandler;
-        this.diagnostics = diagnosticsPanel;
+        this.inputHandler = null;
+        this.diagnosticsPanel = null;
 
-        this.inputHandler.registerSceneManager(this);
+        this.ballManager = new BallManager(this);
 
-        // Initialize physics engine
-        // Planck.js uses canvas coordinates: Y increases downward
-        // Positive gravity pulls objects toward bottom of screen
         this.physics = new PhysicsEngine().create();
         this.physics.setGravity(0, 30);
         this.physics.setTimeScale(1);
@@ -34,10 +29,17 @@ export class SceneManager {
             cachedFPS: 0,
         };
 
-        this.ballManager = new BallManager(this);
-
         this.setupBoundaries();
         this.setupEventHandlers();
+    }
+
+    registerDiagnosticsPanel(diagnosticsPanel) {
+        this.diagnosticsPanel = diagnosticsPanel;
+    }
+
+    registerInputHandler(inputHandler) {
+        this.inputHandler = inputHandler;
+        this.inputHandler.registerSceneManager(this);
     }
 
     getSceneStateHtml() {
@@ -65,15 +67,15 @@ export class SceneManager {
 
             collisionPairs.forEach(({ bodyA, bodyB }) => {
                 // Check for ball-ball collisions
-                const ballA = bodyA.label === 'ball' ? bodyA : null;
-                const ballB = bodyB.label === 'ball' ? bodyB : null;
+                const ballBodyA = bodyA.label === 'ball' ? bodyA : null;
+                const ballBodyB = bodyB.label === 'ball' ? bodyB : null;
 
-                if (ballA && ballB) {
-                    const ballInstanceA = ballA.customProperties.ballInstance;
-                    const ballInstanceB = ballB.customProperties.ballInstance;
+                if (ballBodyA && ballBodyB) {
+                    const ballA = ballBodyA.customProperties.ball;
+                    const ballB = ballBodyB.customProperties.ball;
 
-                    if (ballInstanceA) ballInstanceA.verticalDrop = false;
-                    if (ballInstanceB) ballInstanceB.verticalDrop = false;
+                    if (ballA) ballA.verticalDrop = false;
+                    if (ballB) ballB.verticalDrop = false;
                 }
             });
         });
@@ -83,7 +85,7 @@ export class SceneManager {
 
             ballGroundCollisions.forEach(({ bodyA, bodyB }) => {
                 const ball = bodyA.label === 'ball' ? bodyA : bodyB;
-                // ball.customProperties.ballInstance.keepOnVerticalDrop();
+                // ball.customProperties.ball.keepOnVerticalDrop();
             });
         });
     }
@@ -152,8 +154,7 @@ export class SceneManager {
 
     destroy() {
         this.ballManager = null;
-        this.inputHandler = null;
-        this.diagnostics = null;
+
         if (this.physics) {
             this.physics.destroy();
             this.physics = null;
@@ -317,6 +318,6 @@ export class SceneManager {
 
         this.renderScene();
 
-        this.diagnostics.renderPanel();
+        this.diagnosticsPanel.renderPanel();
     }
 }

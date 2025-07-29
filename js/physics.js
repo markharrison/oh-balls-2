@@ -18,6 +18,8 @@ export class PhysicsEngine {
 
     // Initialize the physics engine
     create() {
+        planck.Settings.lengthUnitsPerMeter = 80; // or whatever pixels-per-meter you're using
+
         this.world = new planck.World({
             allowSleep: false,
         });

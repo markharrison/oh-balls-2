@@ -13,7 +13,12 @@ class Game {
         this.inputHandler.registerDiagnosticsPanel(this.diagnosticsPanel);
 
         // Initialize core systems
-        this.sceneManager = new SceneManager(this.canvas, this.inputHandler, this.diagnosticsPanel);
+        this.sceneManager = new SceneManager(this.canvas);
+        this.sceneManager.registerInputHandler(this.inputHandler);
+        this.sceneManager.registerDiagnosticsPanel(this.diagnosticsPanel);
+
+        this.diagnosticsPanel.registerSceneManager(this.sceneManager);
+        this.diagnosticsPanel.registerBallManager(this.sceneManager.ballManager);
     }
 
     start() {
@@ -41,6 +46,9 @@ class Game {
         this.stop();
         this.sceneManager.destroy();
         this.sceneManager = null; // Remove reference for GC
+
+        this.inputHandler = null;
+        this.diagnosticsPanel = null;
     }
 }
 
