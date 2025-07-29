@@ -168,6 +168,14 @@ export class SceneManager {
 
     renderWallOrFloor(body) {
         const ctx = this.ctx;
+
+        const position = body.getPosition();
+        const angle = body.getAngle();
+
+        ctx.save();
+        ctx.translate(position.x, position.y);
+        ctx.rotate(angle);
+
         let render = body.getUserData().render;
 
         ctx.fillStyle = render.fillStyle;
@@ -194,10 +202,19 @@ export class SceneManager {
 
         ctx.fillRect(-width / 2, -height / 2, width, height);
         ctx.strokeRect(-width / 2, -height / 2, width, height);
+
+        ctx.restore();
     }
 
     renderBall(body) {
         const ctx = this.ctx;
+
+        const position = body.getPosition();
+        const angle = body.getAngle();
+
+        ctx.save();
+        ctx.translate(position.x, position.y);
+        ctx.rotate(angle);
 
         let render = body.getUserData().render;
 
@@ -238,40 +255,8 @@ export class SceneManager {
                 ctx.restore();
             }
         }
-    }
-
-    renderBody(body) {
-        const ctx = this.ctx;
-
-        const position = body.getPosition();
-        const angle = body.getAngle();
-        const userData = body.getUserData() || {};
-
-        ctx.save();
-        ctx.translate(position.x, position.y);
-        ctx.rotate(angle);
-
-        // Render based on body type
-        const label = userData.label || '';
-
-        switch (label) {
-            case 'leftwall':
-            case 'rightwall':
-            case 'ground':
-                this.renderWallOrFloor(body);
-                break;
-            default:
-                this.renderBall(body);
-                break;
-        }
 
         ctx.restore();
-
-        // if (label.includes('Wall') || label === 'ground') {
-        //     this.renderWallOrFloor(planckBody, ctx);
-        // } else {
-        //     this.renderBall(planckBody, ctx);
-        // }
     }
 
     updatePhysics(deltaTime) {
@@ -300,7 +285,16 @@ export class SceneManager {
         const bodies = this.physics.getAllBodies();
 
         bodies.forEach((body) => {
-            this.renderBody(body);
+            switch (body.getUserData().label) {
+                case 'leftwall':
+                case 'rightwall':
+                case 'ground':
+                    this.renderWallOrFloor(body);
+                    break;
+                default:
+                    this.renderBall(body);
+                    break;
+            }
         });
     }
 
@@ -318,6 +312,6 @@ export class SceneManager {
 
         this.renderScene();
 
-        this.diagnostics.updateFrame();
+        this.diagnostics.renderPanel();
     }
 }

@@ -6,7 +6,6 @@ export class DiagnosticPanel {
         this.panel = null;
 
         this.createPanel();
-        this.setupKeyboardControls();
     }
 
     createPanel() {
@@ -39,13 +38,13 @@ export class DiagnosticPanel {
         document.body.appendChild(this.panel);
     }
 
-    setupKeyboardControls() {
-        document.addEventListener('keydown', (event) => {
-            if (event.key.toLowerCase() === 'd') {
-                this.toggle();
-            }
-        });
-    }
+    // setupKeyboardControls() {
+    //     document.addEventListener('keydown', (event) => {
+    //         if (event.key.toLowerCase() === 'd') {
+    //             this.toggle();
+    //         }
+    //     });
+    // }
 
     toggle() {
         this.enabled = !this.enabled;
@@ -53,17 +52,12 @@ export class DiagnosticPanel {
     }
 
     // Called by main game loop when enabled
-    updateFrame() {
+    renderPanel() {
         if (this.enabled) {
-            this.updateDisplay();
-        }
-    }
+            const content = document.getElementById('diagnostic-content');
+            if (!content) return;
 
-    updateDisplay() {
-        const content = document.getElementById('diagnostic-content');
-        if (!content) return;
-
-        content.innerHTML = `
+            content.innerHTML = `
             <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
                 ${this.scene.getSceneStateHtml()}
             </div>
@@ -73,6 +67,7 @@ export class DiagnosticPanel {
             </div>
 
         `;
+        }
     }
 
     // Cleanup method
