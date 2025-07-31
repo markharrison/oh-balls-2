@@ -35,8 +35,7 @@ export class PhysicsEngine {
 
     // Initialize the physics engine
     create() {
-        planck.Settings.lengthUnitsPerMeter = SCALE; // Set scale for pixel to meter conversion
-
+        // Physics world operates in meters, conversion handled by PhysicsBody wrapper
         this.world = new planck.World({
             allowSleep: false,
         });
