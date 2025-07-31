@@ -1,5 +1,5 @@
 // Ball Module for creating and managing balls
-import { PhysicsBodyFactory, PhysicsConstants } from './physics.js';
+import { PhysicsBodyFactory, PhysicsConstants, pixelsToMeters } from './physics.js';
 
 export class Ball {
     constructor(sceneManager, x, y) {
@@ -44,7 +44,10 @@ export class Ball {
     getBallStateHtml() {
         let vHtml = ``;
 
-        let mass = this.radius * this.radius * Math.PI * 1.0;
+        // Calculate mass using meter radius for realistic physics mass
+        const meterRadius = pixelsToMeters(this.radius);
+        const density = 1.0; // Default density from physics body factory
+        let mass = meterRadius * meterRadius * Math.PI * density;
 
         vHtml += this.physicsBody.id + ':&nbsp;';
         vHtml +=
