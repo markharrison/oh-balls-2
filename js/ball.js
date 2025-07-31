@@ -7,8 +7,6 @@ export class Ball {
         this.size = this.generateRandomSize();
         this.radius = this.calculateRadius(this.size);
         this.color = this.getColorForSize(this.size);
-        this.verticalDrop = false;
-        this.verticalDropXCoordinate = 512;
 
         const render = {
             radius: this.radius,
@@ -62,7 +60,6 @@ export class Ball {
         const vel = this.physicsBody.getVelocity();
         vHtml += 'Vel:' + vel.x.toFixed(3) + ',' + vel.y.toFixed(3) + '&nbsp;';
         vHtml += 'Ang Vel:' + this.physicsBody.getAngularVelocity().toFixed(3) + '&nbsp;';
-        vHtml += this.verticalDrop ? 'V' : '';
         vHtml += this.physicsBody.isSleeping() ? 'S' : '';
 
         vHtml += '<br/>';
@@ -110,19 +107,6 @@ export class Ball {
         this.physicsBody.setPosition(x, y);
     }
 
-    keepOnVerticalDrop() {
-        // Ensure the ball stays in vertical drop mode
-        // if (this.verticalDrop) {
-        //     // Keep the ball's x position fixed at the vertical drop x coordinate
-        //     const pos = this.physicsBody.getPosition();
-        //     this.setPosition(this.verticalDropXCoordinate, pos.y);
-        // }
-    }
-
-    applyForce(x, y) {
-        this.physicsBody.applyForce(x, y);
-    }
-
     // Release ball from static state (when dropped)
     release() {
         this.physicsBody.setStatic(false);
@@ -130,8 +114,6 @@ export class Ball {
         this.physicsBody.setVelocity(0, 0);
 
         const pos = this.physicsBody.getPosition();
-        this.verticalDropXCoordinate = pos.x;
-        this.verticalDrop = true;
     }
 
     destroy() {
@@ -232,13 +214,6 @@ export class BallManager {
 
     updateBallStates() {
         let ballBodies = this.getBallBodies();
-
-        ballBodies.forEach((ballBody) => {
-            const ball = ballBody.getUserData()?.ball;
-            if (ball) {
-                ball.keepOnVerticalDrop();
-            }
-        });
 
         // this.stopJittering();
 

@@ -63,30 +63,23 @@ export class SceneManager {
 
     setupEventHandlers() {
         this.physics.on('collisionStart', (event) => {
-            const collisionPairs = PhysicsUtils.getCollisionPairs(event);
-
-            collisionPairs.forEach(({ bodyA, bodyB }) => {
-                // Check for ball-ball collisions
-                const ballBodyA = bodyA.label === 'ball' ? bodyA : null;
-                const ballBodyB = bodyB.label === 'ball' ? bodyB : null;
-
-                if (ballBodyA && ballBodyB) {
-                    const ballA = ballBodyA.customProperties.ball;
-                    const ballB = ballBodyB.customProperties.ball;
-
-                    if (ballA) ballA.verticalDrop = false;
-                    if (ballB) ballB.verticalDrop = false;
-                }
-            });
+            // const collisionPairs = PhysicsUtils.getCollisionPairs(event);
+            // collisionPairs.forEach(({ bodyA, bodyB }) => {
+            //     // Check for ball-ball collisions
+            //     const ballBodyA = bodyA.label === 'ball' ? bodyA : null;
+            //     const ballBodyB = bodyB.label === 'ball' ? bodyB : null;
+            //     // if (ballBodyA && ballBodyB) {
+            //     //     const ballA = ballBodyA.getUserData().ball;
+            //     //     const ballB = ballBodyB.getUserData().ball;
+            //     // }
+            // });
         });
 
         this.physics.on('collisionEnd', (event) => {
-            const ballGroundCollisions = PhysicsUtils.findCollisionByLabels(event, 'ball', 'ground');
-
-            ballGroundCollisions.forEach(({ bodyA, bodyB }) => {
-                const ball = bodyA.label === 'ball' ? bodyA : bodyB;
-                // ball.customProperties.ball.keepOnVerticalDrop();
-            });
+            // const ballGroundCollisions = PhysicsUtils.findCollisionByLabels(event, 'ball', 'ground');
+            // ballGroundCollisions.forEach(({ bodyA, bodyB }) => {
+            //     const ball = bodyA.label === 'ball' ? bodyA : bodyB;
+            // });
         });
     }
 
@@ -94,8 +87,8 @@ export class SceneManager {
         const wallThickness = 16;
         const width = this.canvas.width;
         const height = this.canvas.height;
-        const restitution = 0.7;  
-        const friction = 0.1; 
+        const restitution = 0.7;
+        const friction = 0.1;
 
         const renderGround = {
             fillStyle: '#00ffff',
@@ -107,7 +100,7 @@ export class SceneManager {
 
         const ground = PhysicsBodyFactory.createRectangle(width / 2, height - wallThickness / 2, width, wallThickness, {
             isStatic: true,
-            friction: friction,  
+            friction: friction,
             restitution: restitution,
             userData: {
                 label: 'ground',

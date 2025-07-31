@@ -220,14 +220,6 @@ export class PhysicsBody {
         return this.body.getType() === 'static';
     }
 
-    // Force application - convert pixel forces to meter forces
-    applyForce(pixelForceX, pixelForceY) {
-        const pos = this.body.getPosition(); // Already in meters
-        const meterForceX = pixelsToMeters(pixelForceX);
-        const meterForceY = pixelsToMeters(pixelForceY);
-        this.body.applyForce(pos, { x: meterForceX, y: meterForceY });
-    }
-
     // Sleep methods
     setSleeping(sleeping) {
         this.body.setAwake(!sleeping);
@@ -292,41 +284,28 @@ export class PhysicsBody {
         return 0;
     }
 
-    get force() {
-        // Plank doesn't expose accumulated force directly
-        return { x: 0, y: 0 };
-    }
 
-    set force(value) {
-        // Force is applied through applyForce method in Plank
-    }
+    // set torque(value) {
+    //     // Torque is applied through applyTorque method in Plank
+    //     if (value !== 0) {
+    //         this.body.applyTorque(value);
+    //     }
+    // }
 
-    get torque() {
-        // Plank doesn't expose accumulated torque directly
-        return 0;
-    }
+    // // Custom properties access (for backward compatibility with raw body access)
+    // get customProperties() {
+    //     return this.body.getUserData() || {};
+    // }
 
-    set torque(value) {
-        // Torque is applied through applyTorque method in Plank
-        if (value !== 0) {
-            this.body.applyTorque(value);
-        }
-    }
+    // // Direct Plank body access for complex operations
+    // get plankBody() {    
+    //     return this.body;
+    // }
 
-    // Custom properties access (for backward compatibility with raw body access)
-    get customProperties() {
-        return this.body.getUserData() || {};
-    }
-
-    // Direct Plank body access for complex operations
-    get plankBody() {
-        return this.body;
-    }
-
-    // Compatibility property for MatterJS code
-    get matterBody() {
-        return this.body;
-    }
+    // // Compatibility property for MatterJS code
+    // get matterBody() {
+    //     return this.body;
+    // }
 }
 
 export class PhysicsBodyFactory {
@@ -452,30 +431,30 @@ export class PhysicsBodyFactory {
 // Utility class for physics-related helpers
 export class PhysicsUtils {
     // Check collision between bodies in an event
-    static getCollisionPairs(event) {
-        return event.pairs.map((pair) => ({
-            bodyA: new PhysicsBody(pair.bodyA),
-            bodyB: new PhysicsBody(pair.bodyB),
-        }));
-    }
+    // static getCollisionPairs(event) {
+    //     return event.pairs.map((pair) => ({
+    //         bodyA: new PhysicsBody(pair.bodyA),
+    //         bodyB: new PhysicsBody(pair.bodyB),
+    //     }));
+    // }
 
     // Find collision pairs with specific labels
-    static findCollisionByLabels(event, labelA, labelB) {
-        const results = [];
-        event.pairs.forEach((pair) => {
-            const bodyA = pair.bodyA;
-            const bodyB = pair.bodyB;
+    // static findCollisionByLabels(event, labelA, labelB) {
+    //     const results = [];
+    //     event.pairs.forEach((pair) => {
+    //         const bodyA = pair.bodyA;
+    //         const bodyB = pair.bodyB;
 
-            const labelAData = bodyA.getUserData()?.label || '';
-            const labelBData = bodyB.getUserData()?.label || '';
+    //         const labelAData = bodyA.getUserData()?.label || '';
+    //         const labelBData = bodyB.getUserData()?.label || '';
 
-            if ((labelAData === labelA && labelBData === labelB) || (labelAData === labelB && labelBData === labelA)) {
-                results.push({
-                    bodyA: new PhysicsBody(bodyA),
-                    bodyB: new PhysicsBody(bodyB),
-                });
-            }
-        });
-        return results;
-    }
+    //         if ((labelAData === labelA && labelBData === labelB) || (labelAData === labelB && labelBData === labelA)) {
+    //             results.push({
+    //                 bodyA: new PhysicsBody(bodyA),
+    //                 bodyB: new PhysicsBody(bodyB),
+    //             });
+    //         }
+    //     });
+    //     return results;
+    // }
 }
