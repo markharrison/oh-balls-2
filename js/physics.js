@@ -22,8 +22,8 @@ export const PhysicsWorldDimensions = {
 // Physics engine specific constants
 export const PhysicsConstants = {
     // Velocity thresholds for stopping jitter - adjusted for meter-based physics
-    // Linear: 0.1 px²/s² ≈ 0.316 px/s ≈ 0.004 m/s (4mm/s) - realistic for near-stationary objects
-    slowLinearVelocityThreshold: 0.1, // speedSquared threshold  
+    // Linear: 0.01 px²/s² ≈ 0.1 px/s ≈ 0.00125 m/s (1.25mm/s) - realistic for truly stationary objects
+    slowLinearVelocityThreshold: 0.01, // speedSquared threshold  
     // Angular: 0.02 rad/s ≈ 1.15°/s - realistic for nearly stopped rotation
     slowAngularVelocityThreshold: 0.02, // absolute angular velocity threshold
 };
