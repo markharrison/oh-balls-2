@@ -9,8 +9,6 @@ export class Ball {
         this.color = this.getColorForSize(this.size);
         this.verticalDrop = false;
         this.verticalDropXCoordinate = 512;
-        this.lastSignificantMovement = performance.now();
-        this.consecutiveSlowFrames = 0;
 
         const render = {
             radius: this.radius,
@@ -31,9 +29,8 @@ export class Ball {
         this.physicsBody = PhysicsBodyFactory.createCircle(x, y, this.radius, {
             label: 'ball',
             density: 1,
-            friction: 0.5,
-            frictionAir: 0.005,
-            restitution: 0.7, // Reduced from 0.95 for more realistic bouncing
+            friction: 0.1,
+            restitution: 0.7,
             userData: userData,
         });
 
@@ -58,7 +55,7 @@ export class Ball {
             '"/></svg>&nbsp;';
 
         vHtml += 'Size:' + this.size + '&nbsp;';
-        vHtml += 'Mass:' + mass.toFixed(1) + '&nbsp;';
+        vHtml += 'Mass:' + mass.toFixed(2) + '&nbsp;';
         vHtml += 'Speed:' + this.physicsBody.speed.toFixed(3) + '&nbsp;';
         const pos = this.physicsBody.getPosition();
         vHtml += 'Pos:' + pos.x.toFixed(0) + ',' + pos.y.toFixed(0) + '&nbsp;';
@@ -115,11 +112,11 @@ export class Ball {
 
     keepOnVerticalDrop() {
         // Ensure the ball stays in vertical drop mode
-        if (this.verticalDrop) {
-            // Keep the ball's x position fixed at the vertical drop x coordinate
-            const pos = this.physicsBody.getPosition();
-            this.setPosition(this.verticalDropXCoordinate, pos.y);
-        }
+        // if (this.verticalDrop) {
+        //     // Keep the ball's x position fixed at the vertical drop x coordinate
+        //     const pos = this.physicsBody.getPosition();
+        //     this.setPosition(this.verticalDropXCoordinate, pos.y);
+        // }
     }
 
     applyForce(x, y) {
@@ -243,58 +240,46 @@ export class BallManager {
             }
         });
 
-        this.stopJittering();
+        // this.stopJittering();
 
         this.cleanup();
     }
 
-    stopJittering() {
-        let now = performance.now();
-        
-        let ballBodies = this.getBallBodies();
-        ballBodies.forEach((ballBody) => {
-            const ball = ballBody.getUserData()?.ball;
-            if (ball && !ball.physicsBody.isStatic()) {
-                const velocity = ball.physicsBody.getVelocity();
-                const speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
-                const angularVelocity = ball.physicsBody.getAngularVelocity();
-                
-                // Check if ball has significant movement
-                const hasSignificantMovement = speedSquared > 1.0 || Math.abs(angularVelocity) > 0.1;
-                
-                if (hasSignificantMovement) {
-                    // Ball is moving significantly, reset counters
-                    ball.lastSignificantMovement = now;
-                    ball.consecutiveSlowFrames = 0;
-                } else {
-                    // Ball is moving slowly, increment counter
-                    ball.consecutiveSlowFrames++;
-                }
-                
-                // Only stop jittering if ball has been consistently slow for a long time
-                // AND it's been at least 5 seconds since it last moved significantly
-                const timeWithoutSignificantMovement = now - ball.lastSignificantMovement;
-                const isConsistentlyStationary = ball.consecutiveSlowFrames > 300; // ~5 seconds at 60fps
-                
-                if (timeWithoutSignificantMovement > 5000 && isConsistentlyStationary) {
-                    const isMovingSlowly = speedSquared < PhysicsConstants.slowLinearVelocityThreshold;
-                    const isRotatingSlowly = Math.abs(angularVelocity) < PhysicsConstants.slowAngularVelocityThreshold;
-                    
-                    if (isMovingSlowly) {
-                        ball.physicsBody.setVelocity(0, 0);
-                    }
-                    
-                    if (isRotatingSlowly) {
-                        ball.physicsBody.setAngularVelocity(0);
-                    }
-                    
-                    if (isMovingSlowly && isRotatingSlowly) {
-                        ball.physicsBody.setSleeping(true);
-                    }
-                }
-            }
-        });
-    }
+    // stopJittering() {
+    //     let now = performance.now();
+    //     if (now - this.lastDropTime < 3000) {
+    //         return;
+    //     }
+
+    //     let ballBodies = this.getBallBodies();
+    //     ballBodies.forEach((ballBody) => {
+    //         const ball = ballBody.getUserData()?.ball;
+    //         if (ball.physicsBody.isStatic()) return;
+    //         if (ball.physicsBody.isSleeping()) return;
+
+    //         const velocity = ball.physicsBody.getVelocity();
+    //         const speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
+    //         const isMovingSlowly = speedSquared < PhysicsConstants.slowLinearVelocityThreshold * 100;
+    //         const angularVelocity = ball.physicsBody.getAngularVelocity();
+    //         const isRotatingSlowly = Math.abs(angularVelocity) < PhysicsConstants.slowAngularVelocityThreshold;
+
+    //         // Stop micro-movements gradually to prevent sudden stops
+    //         if (isMovingSlowly && now - this.lastDropTime > 5000) {
+    //             const currentVel = ball.physicsBody.getVelocity();
+    //             ball.physicsBody.setVelocity(currentVel.x * 0.95, currentVel.y * 0.95);
+    //         }
+
+    //         // Check angular velocity separately and stop if it's very small
+    //         if (isRotatingSlowly) {
+    //             ball.physicsBody.setAngularVelocity(0);
+    //         }
+
+    //         // Only put to sleep if truly stationary for a long time
+    //         if (isMovingSlowly && isRotatingSlowly && now - this.lastDropTime > 10000) {
+    //             ball.physicsBody.setSleeping(true);
+    //         }
+    //     });
+    // }
 
     cleanup() {
         let now = performance.now();

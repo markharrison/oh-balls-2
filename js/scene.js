@@ -11,7 +11,7 @@ export class SceneManager {
         this.ballManager = new BallManager(this);
 
         this.physics = new PhysicsEngine().create();
-        this.physics.setGravity(0, 30);
+        this.physics.setGravity(0, 120); // Gentler gravity for relaxed gameplay
         this.physics.setTimeScale(1);
 
         // Set world reference in factory
@@ -94,6 +94,8 @@ export class SceneManager {
         const wallThickness = 16;
         const width = this.canvas.width;
         const height = this.canvas.height;
+        const restitution = 0.7;  
+        const friction = 0.1; 
 
         const renderGround = {
             fillStyle: '#00ffff',
@@ -105,8 +107,8 @@ export class SceneManager {
 
         const ground = PhysicsBodyFactory.createRectangle(width / 2, height - wallThickness / 2, width, wallThickness, {
             isStatic: true,
-            friction: 0.3,
-            restitution: 0.7,
+            friction: friction,  
+            restitution: restitution,
             userData: {
                 label: 'ground',
                 render: renderGround,
@@ -123,8 +125,8 @@ export class SceneManager {
 
         const leftWall = PhysicsBodyFactory.createRectangle(wallThickness / 2, height / 2, wallThickness, height, {
             isStatic: true,
-            friction: 0.3,
-            restitution: 0.6,
+            friction: friction,
+            restitution: restitution,
             userData: {
                 label: 'leftwall',
                 render: renderWall,
@@ -133,8 +135,8 @@ export class SceneManager {
 
         const rightWall = PhysicsBodyFactory.createRectangle(width - wallThickness / 2, height / 2, wallThickness, height, {
             isStatic: true,
-            friction: 0.3,
-            restitution: 0.6,
+            friction: friction,
+            restitution: restitution,
             userData: {
                 label: 'rightwall',
                 render: renderWall,
@@ -176,7 +178,7 @@ export class SceneManager {
         const meterPosition = body.getPosition();
         const position = {
             x: metersToPixels(meterPosition.x),
-            y: metersToPixels(meterPosition.y)
+            y: metersToPixels(meterPosition.y),
         };
         const angle = body.getAngle();
 
@@ -206,7 +208,7 @@ export class SceneManager {
         const meterPosition = body.getPosition();
         const position = {
             x: metersToPixels(meterPosition.x),
-            y: metersToPixels(meterPosition.y)
+            y: metersToPixels(meterPosition.y),
         };
         const angle = body.getAngle();
 

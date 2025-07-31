@@ -15,17 +15,17 @@ export function metersToPixels(meters) {
 
 // Physics world dimensions in meters (16m x 9m)
 export const PhysicsWorldDimensions = {
-    width: 16,  // meters
-    height: 9   // meters
+    width: 16, // meters
+    height: 9, // meters
 };
 
 // Physics engine specific constants
 export const PhysicsConstants = {
     // Velocity thresholds for stopping jitter - adjusted for meter-based physics
-    // Linear: 0.01 px²/s² ≈ 0.1 px/s ≈ 0.00125 m/s (1.25mm/s) - realistic for truly stationary objects
-    slowLinearVelocityThreshold: 0.01, // speedSquared threshold  
-    // Angular: 0.02 rad/s ≈ 1.15°/s - realistic for nearly stopped rotation
-    slowAngularVelocityThreshold: 0.02, // absolute angular velocity threshold
+    // Linear: 1.0 px²/s² ≈ 1 px/s ≈ 0.0125 m/s (12.5mm/s) - more realistic threshold
+    slowLinearVelocityThreshold: 1.0, // speedSquared threshold
+    // Angular: 0.1 rad/s ≈ 5.7°/s - more realistic for nearly stopped rotation
+    slowAngularVelocityThreshold: 0.1, // absolute angular velocity threshold
 };
 
 export class PhysicsEngine {
@@ -39,7 +39,7 @@ export class PhysicsEngine {
     create() {
         // Physics world operates in meters, conversion handled by PhysicsBody wrapper
         this.world = new planck.World({
-            allowSleep: false,
+            allowSleep: false, // Disable sleeping completely for now
         });
 
         // Set up contact listener for event handling
@@ -90,11 +90,12 @@ export class PhysicsEngine {
     }
 
     // Update physics simulation
-    update(deltaTime) {
+    update(stepTime) {
         if (this.world) {
-            // Use a more consistent timestep for Plank JS with higher iterations for stability
-            const fixedTimeStep = 1 / 60; // 60 FPS fixed timestep
-            this.world.step(fixedTimeStep, 10, 8); // Increased iterations for better collision detection
+            // Use a fixed timestep for stability - stepTime parameter is ignored
+            // Scene.js will call this multiple times per frame for sub-stepping
+            const fixedTimeStep = 1 / 60; // 60 FPS fixed timestep (0.0167 seconds)
+            this.world.step(fixedTimeStep, 6, 3); // Reduced iterations back to original values
         }
     }
 
@@ -103,8 +104,9 @@ export class PhysicsEngine {
         if (this.world && body) {
             // If it's our PhysicsBody wrapper, get the actual body
             const actualBody = body.body || body;
-            // Body is already created in the world through our factory methods
-            // This method is mainly for compatibility
+            // Bodies are created directly in the world through factory methods
+            // This method exists for compatibility but bodies are already in the world
+            // No additional action needed since bodies are created in the world
         }
     }
 
@@ -351,6 +353,8 @@ export class PhysicsBodyFactory {
         const bodyDef = {
             type: options.isStatic ? 'static' : 'dynamic',
             position: { x: meterX, y: meterY },
+            linearDamping: 0, // Ensure no linear damping for proper bouncing
+            angularDamping: 0, // Ensure no angular damping for proper bouncing
         };
 
         if (options.angle !== undefined) {
@@ -394,6 +398,8 @@ export class PhysicsBodyFactory {
         const bodyDef = {
             type: options.isStatic ? 'static' : 'dynamic',
             position: { x: meterX, y: meterY },
+            linearDamping: 0,
+            angularDamping: 0,
         };
 
         if (options.angle !== undefined) {
@@ -402,13 +408,6 @@ export class PhysicsBodyFactory {
 
         const body = PhysicsBodyFactory.world.createBody(bodyDef);
 
-        // Set linear and angular damping if provided (Planck.js equivalent of frictionAir)
-        if (options.frictionAir !== undefined) {
-            body.setLinearDamping(options.frictionAir);
-            body.setAngularDamping(options.frictionAir);
-        }
-
-        // Create fixture definition with meter radius
         const fixtureDef = {
             shape: new planck.Circle(meterRadius),
             density: options.density || 1,
@@ -419,19 +418,19 @@ export class PhysicsBodyFactory {
         body.createFixture(fixtureDef);
 
         // Calculate density from mass if provided (let Planck handle mass calculations)
-        if (options.mass !== undefined) {
-            // Calculate density needed to achieve desired mass
-            // Mass = density * area, so density = mass / area
-            const area = Math.PI * meterRadius * meterRadius;
-            const desiredDensity = options.mass / area;
+        // if (options.mass !== undefined) {
+        //     // Calculate density needed to achieve desired mass
+        //     // Mass = density * area, so density = mass / area
+        //     const area = Math.PI * meterRadius * meterRadius;
+        //     const desiredDensity = options.mass / area;
 
-            // Update the fixture's density
-            const fixture = body.getFixtureList();
-            if (fixture) {
-                fixture.setDensity(desiredDensity);
-                body.resetMassData(); // Recalculate mass based on new density
-            }
-        }
+        //     // Update the fixture's density
+        //     const fixture = body.getFixtureList();
+        //     if (fixture) {
+        //         fixture.setDensity(desiredDensity);
+        //         body.resetMassData(); // Recalculate mass based on new density
+        //     }
+        // }
 
         const userData = {
             id: PhysicsBodyFactory.generateId(),
