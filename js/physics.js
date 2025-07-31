@@ -402,6 +402,12 @@ export class PhysicsBodyFactory {
 
         const body = PhysicsBodyFactory.world.createBody(bodyDef);
 
+        // Set linear and angular damping if provided (Planck.js equivalent of frictionAir)
+        if (options.frictionAir !== undefined) {
+            body.setLinearDamping(options.frictionAir);
+            body.setAngularDamping(options.frictionAir);
+        }
+
         // Create fixture definition with meter radius
         const fixtureDef = {
             shape: new planck.Circle(meterRadius),
