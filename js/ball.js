@@ -1,5 +1,5 @@
 // Ball Module for creating and managing balls
-import { PhysicsBodyFactory, PhysicsConstants } from './physics.js';
+import { PhysicsBodyFactory, PhysicsConstants, pixelsToMeters } from './physics.js';
 
 export class Ball {
     constructor(sceneManager, x, y) {
@@ -9,6 +9,8 @@ export class Ball {
         this.color = this.getColorForSize(this.size);
         this.verticalDrop = false;
         this.verticalDropXCoordinate = 512;
+        this.lastSignificantMovement = performance.now();
+        this.consecutiveSlowFrames = 0;
 
         const render = {
             radius: this.radius,
@@ -28,7 +30,7 @@ export class Ball {
 
         this.physicsBody = PhysicsBodyFactory.createCircle(x, y, this.radius, {
             label: 'ball',
-            desnity: 1,
+            density: 1,
             friction: 0.5,
             frictionAir: 0.005,
             restitution: 0.7, // Reduced from 0.95 for more realistic bouncing
@@ -44,7 +46,10 @@ export class Ball {
     getBallStateHtml() {
         let vHtml = ``;
 
-        let mass = this.radius * this.radius * Math.PI * 1.0;
+        // Calculate mass using meter radius for realistic physics mass
+        const meterRadius = pixelsToMeters(this.radius);
+        const density = 1.0; // Default density from physics body factory
+        let mass = meterRadius * meterRadius * Math.PI * density;
 
         vHtml += this.physicsBody.id + ':&nbsp;';
         vHtml +=
@@ -245,32 +250,47 @@ export class BallManager {
 
     stopJittering() {
         let now = performance.now();
-        if (now - this.lastDropTime < 10000) {
-            return;
-        }
-
+        
         let ballBodies = this.getBallBodies();
         ballBodies.forEach((ballBody) => {
             const ball = ballBody.getUserData()?.ball;
             if (ball && !ball.physicsBody.isStatic()) {
                 const velocity = ball.physicsBody.getVelocity();
                 const speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
-                const isMovingSlowly = speedSquared < PhysicsConstants.slowLinearVelocityThreshold;
                 const angularVelocity = ball.physicsBody.getAngularVelocity();
-                const isRotatingSlowly = Math.abs(angularVelocity) < PhysicsConstants.slowAngularVelocityThreshold;
-
-                // Stop micro-movements: only stop balls that are moving very slowly
-                if (isMovingSlowly) {
-                    ball.physicsBody.setVelocity(0, 0);
+                
+                // Check if ball has significant movement
+                const hasSignificantMovement = speedSquared > 1.0 || Math.abs(angularVelocity) > 0.1;
+                
+                if (hasSignificantMovement) {
+                    // Ball is moving significantly, reset counters
+                    ball.lastSignificantMovement = now;
+                    ball.consecutiveSlowFrames = 0;
+                } else {
+                    // Ball is moving slowly, increment counter
+                    ball.consecutiveSlowFrames++;
                 }
-
-                // Check angular velocity separately and stop if it's very small
-                if (isRotatingSlowly) {
-                    ball.physicsBody.setAngularVelocity(0);
-                }
-
-                if (isMovingSlowly && isRotatingSlowly && now - this.lastDropTime > 15000) {
-                    ball.physicsBody.setSleeping(true);
+                
+                // Only stop jittering if ball has been consistently slow for a long time
+                // AND it's been at least 5 seconds since it last moved significantly
+                const timeWithoutSignificantMovement = now - ball.lastSignificantMovement;
+                const isConsistentlyStationary = ball.consecutiveSlowFrames > 300; // ~5 seconds at 60fps
+                
+                if (timeWithoutSignificantMovement > 5000 && isConsistentlyStationary) {
+                    const isMovingSlowly = speedSquared < PhysicsConstants.slowLinearVelocityThreshold;
+                    const isRotatingSlowly = Math.abs(angularVelocity) < PhysicsConstants.slowAngularVelocityThreshold;
+                    
+                    if (isMovingSlowly) {
+                        ball.physicsBody.setVelocity(0, 0);
+                    }
+                    
+                    if (isRotatingSlowly) {
+                        ball.physicsBody.setAngularVelocity(0);
+                    }
+                    
+                    if (isMovingSlowly && isRotatingSlowly) {
+                        ball.physicsBody.setSleeping(true);
+                    }
                 }
             }
         });

@@ -1,5 +1,5 @@
 import { BallManager } from './ball.js';
-import { PhysicsEngine, PhysicsBodyFactory, PhysicsUtils } from './physics.js';
+import { PhysicsEngine, PhysicsBodyFactory, PhysicsUtils, metersToPixels } from './physics.js';
 
 export class SceneManager {
     constructor(canvas) {
@@ -172,7 +172,12 @@ export class SceneManager {
     renderWallOrFloor(body) {
         const ctx = this.ctx;
 
-        const position = body.getPosition();
+        // Convert position from meters to pixels for rendering
+        const meterPosition = body.getPosition();
+        const position = {
+            x: metersToPixels(meterPosition.x),
+            y: metersToPixels(meterPosition.y)
+        };
         const angle = body.getAngle();
 
         ctx.save();
@@ -197,7 +202,12 @@ export class SceneManager {
     renderBall(body) {
         const ctx = this.ctx;
 
-        const position = body.getPosition();
+        // Convert position from meters to pixels for rendering
+        const meterPosition = body.getPosition();
+        const position = {
+            x: metersToPixels(meterPosition.x),
+            y: metersToPixels(meterPosition.y)
+        };
         const angle = body.getAngle();
 
         ctx.save();

@@ -2,11 +2,30 @@
 // This module provides a generic physics interface that wraps Plank.js
 // Making it easy to swap physics engines in the future
 
+// Scaling constants for converting between pixels and meters
+const SCALE = 80; // pixels per meter
+
+export function pixelsToMeters(pixels) {
+    return pixels / SCALE;
+}
+
+export function metersToPixels(meters) {
+    return meters * SCALE;
+}
+
+// Physics world dimensions in meters (16m x 9m)
+export const PhysicsWorldDimensions = {
+    width: 16,  // meters
+    height: 9   // meters
+};
+
 // Physics engine specific constants
 export const PhysicsConstants = {
-    // Velocity thresholds for stopping jitter (Planck.js specific values)
-    slowLinearVelocityThreshold: 1.0, // speedSquared threshold
-    slowAngularVelocityThreshold: 0.04, // absolute angular velocity threshold
+    // Velocity thresholds for stopping jitter - adjusted for meter-based physics
+    // Linear: 0.01 px²/s² ≈ 0.1 px/s ≈ 0.00125 m/s (1.25mm/s) - realistic for truly stationary objects
+    slowLinearVelocityThreshold: 0.01, // speedSquared threshold  
+    // Angular: 0.02 rad/s ≈ 1.15°/s - realistic for nearly stopped rotation
+    slowAngularVelocityThreshold: 0.02, // absolute angular velocity threshold
 };
 
 export class PhysicsEngine {
@@ -18,8 +37,7 @@ export class PhysicsEngine {
 
     // Initialize the physics engine
     create() {
-        planck.Settings.lengthUnitsPerMeter = 80; // or whatever pixels-per-meter you're using
-
+        // Physics world operates in meters, conversion handled by PhysicsBody wrapper
         this.world = new planck.World({
             allowSleep: false,
         });
@@ -57,10 +75,12 @@ export class PhysicsEngine {
         }
     }
 
-    // Set gravity
-    setGravity(x, y) {
+    // Set gravity - convert pixel gravity to meter gravity
+    setGravity(pixelGravityX, pixelGravityY) {
         if (this.world) {
-            this.world.setGravity({ x, y });
+            const meterGravityX = pixelsToMeters(pixelGravityX);
+            const meterGravityY = pixelsToMeters(pixelGravityY);
+            this.world.setGravity({ x: meterGravityX, y: meterGravityY });
         }
     }
 
@@ -146,30 +166,34 @@ export class PhysicsBody {
         this.body = body;
     }
 
-    // Position methods
+    // Position methods - convert between meters (physics) and pixels (rendering)
     getPosition() {
         const pos = this.body.getPosition();
         return {
-            x: pos.x,
-            y: pos.y,
+            x: metersToPixels(pos.x),
+            y: metersToPixels(pos.y),
         };
     }
 
-    setPosition(x, y) {
-        this.body.setTransform({ x, y }, this.body.getAngle());
+    setPosition(pixelX, pixelY) {
+        const meterX = pixelsToMeters(pixelX);
+        const meterY = pixelsToMeters(pixelY);
+        this.body.setTransform({ x: meterX, y: meterY }, this.body.getAngle());
     }
 
-    // Velocity methods
+    // Velocity methods - convert between meters/sec (physics) and pixels/sec (rendering)
     getVelocity() {
         const vel = this.body.getLinearVelocity();
         return {
-            x: vel.x,
-            y: vel.y,
+            x: metersToPixels(vel.x),
+            y: metersToPixels(vel.y),
         };
     }
 
-    setVelocity(x, y) {
-        this.body.setLinearVelocity({ x, y });
+    setVelocity(pixelVelX, pixelVelY) {
+        const meterVelX = pixelsToMeters(pixelVelX);
+        const meterVelY = pixelsToMeters(pixelVelY);
+        this.body.setLinearVelocity({ x: meterVelX, y: meterVelY });
     }
 
     // Angular velocity methods
@@ -194,10 +218,12 @@ export class PhysicsBody {
         return this.body.getType() === 'static';
     }
 
-    // Force application
-    applyForce(x, y) {
-        const pos = this.body.getPosition();
-        this.body.applyForce(pos, { x, y });
+    // Force application - convert pixel forces to meter forces
+    applyForce(pixelForceX, pixelForceY) {
+        const pos = this.body.getPosition(); // Already in meters
+        const meterForceX = pixelsToMeters(pixelForceX);
+        const meterForceY = pixelsToMeters(pixelForceY);
+        this.body.applyForce(pos, { x: meterForceX, y: meterForceY });
     }
 
     // Sleep methods
@@ -223,12 +249,12 @@ export class PhysicsBody {
     }
 
     get speed() {
-        const vel = this.getVelocity();
+        const vel = this.getVelocity(); // Already converted to pixels
         return Math.sqrt(vel.x * vel.x + vel.y * vel.y);
     }
 
     get bounds() {
-        // Get AABB from fixtures
+        // Get AABB from fixtures and convert to pixels
         const aabb = new planck.AABB();
         let first = true;
 
@@ -248,17 +274,17 @@ export class PhysicsBody {
         }
 
         return {
-            min: { x: aabb.lowerBound.x, y: aabb.lowerBound.y },
-            max: { x: aabb.upperBound.x, y: aabb.upperBound.y },
+            min: { x: metersToPixels(aabb.lowerBound.x), y: metersToPixels(aabb.lowerBound.y) },
+            max: { x: metersToPixels(aabb.upperBound.x), y: metersToPixels(aabb.upperBound.y) },
         };
     }
 
     get circleRadius() {
-        // Get radius from first circle fixture
+        // Get radius from first circle fixture and convert to pixels
         for (let fixture = this.body.getFixtureList(); fixture; fixture = fixture.getNext()) {
             const shape = fixture.getShape();
             if (shape.getType() === planck.Circle.TYPE) {
-                return shape.getRadius();
+                return metersToPixels(shape.getRadius());
             }
         }
         return 0;
@@ -309,16 +335,22 @@ export class PhysicsBodyFactory {
         PhysicsBodyFactory.world = world;
     }
 
-    // Create rectangle body
-    static createRectangle(x, y, width, height, options = {}) {
+    // Create rectangle body - accepts pixel coordinates and dimensions
+    static createRectangle(pixelX, pixelY, pixelWidth, pixelHeight, options = {}) {
         if (!PhysicsBodyFactory.world) {
             throw new Error('World not set. Call PhysicsBodyFactory.setWorld(world) first.');
         }
 
+        // Convert pixel coordinates to meters for physics world
+        const meterX = pixelsToMeters(pixelX);
+        const meterY = pixelsToMeters(pixelY);
+        const meterWidth = pixelsToMeters(pixelWidth);
+        const meterHeight = pixelsToMeters(pixelHeight);
+
         // Create body definition
         const bodyDef = {
             type: options.isStatic ? 'static' : 'dynamic',
-            position: { x, y },
+            position: { x: meterX, y: meterY },
         };
 
         if (options.angle !== undefined) {
@@ -327,9 +359,9 @@ export class PhysicsBodyFactory {
 
         const body = PhysicsBodyFactory.world.createBody(bodyDef);
 
-        // Create fixture definition
+        // Create fixture definition with meter dimensions
         const fixtureDef = {
-            shape: new planck.Box(width / 2, height / 2),
+            shape: new planck.Box(meterWidth / 2, meterHeight / 2),
             density: options.density || 1,
             friction: options.friction || 0.3,
             restitution: options.restitution || 0.1,
@@ -347,16 +379,21 @@ export class PhysicsBodyFactory {
         return new PhysicsBody(body);
     }
 
-    // Create circle body
-    static createCircle(x, y, radius, options = {}) {
+    // Create circle body - accepts pixel coordinates and radius
+    static createCircle(pixelX, pixelY, pixelRadius, options = {}) {
         if (!PhysicsBodyFactory.world) {
             throw new Error('World not set. Call PhysicsBodyFactory.setWorld(world) first.');
         }
 
+        // Convert pixel coordinates to meters for physics world
+        const meterX = pixelsToMeters(pixelX);
+        const meterY = pixelsToMeters(pixelY);
+        const meterRadius = pixelsToMeters(pixelRadius);
+
         // Create body definition
         const bodyDef = {
             type: options.isStatic ? 'static' : 'dynamic',
-            position: { x, y },
+            position: { x: meterX, y: meterY },
         };
 
         if (options.angle !== undefined) {
@@ -365,9 +402,15 @@ export class PhysicsBodyFactory {
 
         const body = PhysicsBodyFactory.world.createBody(bodyDef);
 
-        // Create fixture definition
+        // Set linear and angular damping if provided (Planck.js equivalent of frictionAir)
+        if (options.frictionAir !== undefined) {
+            body.setLinearDamping(options.frictionAir);
+            body.setAngularDamping(options.frictionAir);
+        }
+
+        // Create fixture definition with meter radius
         const fixtureDef = {
-            shape: new planck.Circle(radius),
+            shape: new planck.Circle(meterRadius),
             density: options.density || 1,
             friction: options.friction || 0.3,
             restitution: options.restitution || 0.1,
@@ -379,7 +422,7 @@ export class PhysicsBodyFactory {
         if (options.mass !== undefined) {
             // Calculate density needed to achieve desired mass
             // Mass = density * area, so density = mass / area
-            const area = Math.PI * radius * radius;
+            const area = Math.PI * meterRadius * meterRadius;
             const desiredDensity = options.mass / area;
 
             // Update the fixture's density
