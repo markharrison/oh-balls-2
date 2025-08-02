@@ -1,4 +1,4 @@
-export class SceneConfig {
+export class SceneSettings {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
@@ -22,7 +22,7 @@ export class SceneConfig {
 
     getSceneStateHtml() {
         const vHtml = `
-            <strong>Scene: Configuration</strong><br>
+            <strong>Scene: Settings</strong><br>
             Sound: ${this.config.soundEnabled ? 'On' : 'Off'}<br>
             Difficulty: ${this.config.difficulty}<br>
             Graphics: ${this.config.graphics}
@@ -38,7 +38,7 @@ export class SceneConfig {
 
     renderScene() {
         const ballInfoElement = document.getElementById('currentBallSize');
-        ballInfoElement.textContent = 'Harrison Digital - Configuration';
+        ballInfoElement.textContent = 'Harrison Digital - Settings';
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -51,7 +51,7 @@ export class SceneConfig {
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText('CONFIGURATION', this.canvas.width / 2, 120);
+        this.ctx.fillText('SETTINGS', this.canvas.width / 2, 120);
 
         // Configuration options
         const startY = 220;

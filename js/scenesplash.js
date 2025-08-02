@@ -8,6 +8,10 @@ export class SceneSplash {
             deltaTime: 0,
             currentTime: 0,
         };
+
+        this.startTime = performance.now();
+        this.displayDuration = 5000; // 5 seconds
+        this.hasTransitioned = false;
     }
 
     getSceneStateHtml() {
@@ -48,25 +52,22 @@ export class SceneSplash {
         this.ctx.fillStyle = '#cccccc';
         this.ctx.fillText('Physics Game', this.canvas.width / 2, this.canvas.height / 2 - 40);
 
-        // Instructions
+        // Loading message
         this.ctx.font = '24px Arial';
         this.ctx.fillStyle = '#999999';
-        this.ctx.fillText('Press ENTER to continue', this.canvas.width / 2, this.canvas.height / 2 + 80);
-        this.ctx.fillText('Press C for Configuration', this.canvas.width / 2, this.canvas.height / 2 + 120);
+        this.ctx.fillText('Loading...', this.canvas.width / 2, this.canvas.height / 2 + 80);
     }
 
     inputKeyPressed(code, debug) {
-        // This will be handled by SceneManager to switch scenes
-        switch (code) {
-            case 'Enter':
-                // Switch to main scene - handled by SceneManager
-                break;
-            case 'KeyC':
-                // Switch to config scene - handled by SceneManager
-                break;
-            default:
-                break;
-        }
+        // No manual input handling - auto-transition after 5 seconds
+    }
+
+    shouldTransition() {
+        return performance.now() - this.startTime >= this.displayDuration && !this.hasTransitioned;
+    }
+
+    markTransitioned() {
+        this.hasTransitioned = true;
     }
 
     updateFrame() {
