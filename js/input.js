@@ -21,8 +21,8 @@ export class InputHandler {
     setupEventListeners() {
         document.addEventListener('keyup', (event) => this.handleKeyUp(event));
         document.addEventListener('keydown', (event) => {
-            // Prevent default for arrow keys and space
-            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) {
+            // Prevent default for arrow keys, space, enter, and escape
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'Enter', 'Escape'].includes(event.code)) {
                 event.preventDefault();
             }
             this.handleKeyDown(event);
@@ -35,6 +35,14 @@ export class InputHandler {
             this.keyState[event.code] = true;
             return;
         }
+        // ArrowUp/ArrowDown: only fire on new press for menu navigation
+        if (event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+            if (!this.keyState[event.code]) {
+                this.keyState[event.code] = true;
+                this.sceneManager.inputKeyPressed(event.code);
+            }
+            return;
+        }
         // Letter keys: only fire on new press
         if (/^Key[A-Z]$/.test(event.code)) {
             if (!this.keyState[event.code]) {
@@ -43,8 +51,8 @@ export class InputHandler {
             }
             return;
         }
-        // Space/ArrowDown: only fire on new press
-        if (event.code === 'Space' || event.code === 'ArrowDown') {
+        // Space/Enter/Escape: only fire on new press
+        if (event.code === 'Space' || event.code === 'Enter' || event.code === 'Escape') {
             if (!this.keyState[event.code]) {
                 this.keyState[event.code] = true;
                 this.sceneManager.inputKeyPressed(event.code);
