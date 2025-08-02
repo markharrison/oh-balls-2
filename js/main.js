@@ -7,7 +7,6 @@ class Main {
         this.running = false;
 
         this.inputHandler = new InputHandler();
-        this.inputHandler.registerDiagnosticsPanel(this.diagnosticsPanel);
 
         this.sceneManager = new SceneManager(this.canvas);
         this.sceneManager.registerInputHandler(this.inputHandler);

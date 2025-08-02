@@ -1,12 +1,17 @@
 import { DiagnosticPanel } from './diagnostics.js';
 
 import { SceneBallsX } from './sceneballsx.js';
+import { SceneSplash } from './scenesplash.js';
+import { SceneMenu } from './scenemenu.js';
+import { SceneSettings } from './scenesettings.js';
 
 export class SceneManager {
     static GameScenes = Object.freeze({
+        splash: 'splash',
+        menu: 'menu',
         main: 'main',
         ballsX: 'ballsX',
-        config: 'config',
+        settings: 'settings',
     });
     constructor(canvas) {
         this.canvas = canvas;
@@ -21,30 +26,53 @@ export class SceneManager {
         this.diagnosticsPanel = new DiagnosticPanel();
         this.diagnosticsPanel.registerSceneManager(this);
 
-        this.setCurrentScene(SceneManager.GameScenes.main);
-
-        this.createSceneBallsX();
+        this.setCurrentScene(SceneManager.GameScenes.splash);
     }
 
     setCurrentScene(scene) {
         this.currentScene = scene;
 
         switch (scene) {
+            case SceneManager.GameScenes.splash:
+                this.createSceneSplash();
+                break;
+            case SceneManager.GameScenes.menu:
+                this.createSceneMenu();
+                break;
             case SceneManager.GameScenes.main:
                 break;
             case SceneManager.GameScenes.ballsX:
                 this.createSceneBallsX();
                 break;
-            case SceneManager.GameScenes.config:
+            case SceneManager.GameScenes.settings:
+                this.createSceneSettings();
                 break;
             default:
                 break;
         }
     }
 
+    createSceneSplash() {
+        if (!this.sceneSplash) {
+            this.sceneSplash = new SceneSplash(this.canvas);
+        }
+    }
+
+    createSceneMenu() {
+        if (!this.sceneMenu) {
+            this.sceneMenu = new SceneMenu(this.canvas);
+        }
+    }
+
     createSceneBallsX() {
         if (!this.sceneBallsX) {
             this.sceneBallsX = new SceneBallsX(this.canvas);
+        }
+    }
+
+    createSceneSettings() {
+        if (!this.sceneSettings) {
+            this.sceneSettings = new SceneSettings(this.canvas);
         }
     }
 
@@ -64,13 +92,20 @@ export class SceneManager {
         let vHtml = '';
 
         switch (this.currentScene) {
+            case SceneManager.GameScenes.splash:
+                vHtml = this.sceneSplash.getSceneStateHtml();
+                break;
+            case SceneManager.GameScenes.menu:
+                vHtml = this.sceneMenu.getSceneStateHtml();
+                break;
             case SceneManager.GameScenes.main:
                 vHtml = this.getSceneMainStateHtml();
                 break;
             case SceneManager.GameScenes.ballsX:
                 vHtml = this.sceneBallsX.getSceneStateHtml();
                 break;
-            case SceneManager.GameScenes.config:
+            case SceneManager.GameScenes.settings:
+                vHtml = this.sceneSettings.getSceneStateHtml();
                 break;
             default:
                 break;
@@ -84,7 +119,10 @@ export class SceneManager {
     start() {}
 
     destroy() {
+        this.sceneSplash = null;
+        this.sceneMenu = null;
         this.sceneBallsX = null;
+        this.sceneSettings = null;
         this.diagnosticsPanel = null;
     }
 
@@ -107,6 +145,31 @@ export class SceneManager {
         // Get all bodies and render them
     }
 
+    inputKeyPressedSplash(code) {
+        // No manual input - auto-transition handles this
+    }
+
+    inputKeyPressedMenu(code) {
+        switch (code) {
+            case 'ArrowUp':
+            case 'ArrowDown':
+                this.sceneMenu.inputKeyPressed(code, false);
+                break;
+            case 'Enter':
+                // Handle menu selection
+                if (this.sceneMenu.selectedOption === 0) {
+                    // Start Game
+                    this.setCurrentScene(SceneManager.GameScenes.ballsX);
+                } else if (this.sceneMenu.selectedOption === 1) {
+                    // Settings
+                    this.setCurrentScene(SceneManager.GameScenes.settings);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
     inputKeyPressedMain(code) {
         switch (code) {
             case 'ArrowLeft':
@@ -115,6 +178,27 @@ export class SceneManager {
             case 'ArrowRight':
                 break;
             default:
+                break;
+        }
+    }
+
+    inputKeyPressedSettings(code) {
+        switch (code) {
+            case 'Escape':
+                this.setCurrentScene(SceneManager.GameScenes.menu);
+                break;
+            case 'Enter':
+                // Check if Back option is selected
+                if (this.sceneSettings.selectedOption === 3) {
+                    this.setCurrentScene(SceneManager.GameScenes.menu);
+                } else {
+                    // Pass other input to the settings scene
+                    this.sceneSettings.inputKeyPressed(code, false);
+                }
+                break;
+            default:
+                // Pass other input to the settings scene
+                this.sceneSettings.inputKeyPressed(code, false);
                 break;
         }
     }
@@ -128,13 +212,20 @@ export class SceneManager {
                 break;
             default: {
                 switch (this.currentScene) {
+                    case SceneManager.GameScenes.splash:
+                        this.inputKeyPressedSplash(code);
+                        break;
+                    case SceneManager.GameScenes.menu:
+                        this.inputKeyPressedMenu(code);
+                        break;
                     case SceneManager.GameScenes.main:
                         this.inputKeyPressedMain(code);
                         break;
                     case SceneManager.GameScenes.ballsX:
                         this.sceneBallsX.inputKeyPressed(code, debug);
                         break;
-                    case SceneManager.GameScenes.config:
+                    case SceneManager.GameScenes.settings:
+                        this.inputKeyPressedSettings(code);
                         break;
                     default:
                         break;
@@ -156,15 +247,39 @@ export class SceneManager {
         this.inputHandler.getInput();
 
         switch (this.currentScene) {
+            case SceneManager.GameScenes.splash:
+                if (this.sceneSplash) {
+                    this.sceneSplash.updateFrame();
+                    // Check for auto-transition
+                    if (this.sceneSplash.shouldTransition()) {
+                        this.sceneSplash.markTransitioned();
+                        this.setCurrentScene(SceneManager.GameScenes.menu);
+                    }
+                }
+                break;
+            case SceneManager.GameScenes.menu:
+                if (this.sceneMenu) {
+                    this.sceneMenu.updateFrame();
+                }
+                break;
             case SceneManager.GameScenes.main:
                 this.updateFrameMain();
                 break;
             case SceneManager.GameScenes.ballsX:
                 if (this.sceneBallsX) {
                     this.sceneBallsX.updateFrame();
+                    // Check for exit to menu request
+                    if (this.sceneBallsX.shouldExitToMenu()) {
+                        console.log('Exit to menu requested, transitioning to menu scene');
+                        this.sceneBallsX.markExitProcessed();
+                        this.setCurrentScene(SceneManager.GameScenes.menu);
+                    }
                 }
                 break;
-            case SceneManager.GameScenes.config:
+            case SceneManager.GameScenes.settings:
+                if (this.sceneSettings) {
+                    this.sceneSettings.updateFrame();
+                }
                 break;
             default:
                 break;
