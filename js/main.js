@@ -31,7 +31,7 @@ class Main {
 
     stop() {
         this.running = false;
-        this.sceneManager.stop();
+        this.sceneBallsX.stop();
     }
 
     gameLoop() {
