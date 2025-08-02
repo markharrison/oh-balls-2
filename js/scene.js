@@ -268,6 +268,12 @@ export class SceneManager {
             case SceneManager.GameScenes.ballsX:
                 if (this.sceneBallsX) {
                     this.sceneBallsX.updateFrame();
+                    // Check for exit to menu request
+                    if (this.sceneBallsX.shouldExitToMenu()) {
+                        console.log('Exit to menu requested, transitioning to menu scene');
+                        this.sceneBallsX.markExitProcessed();
+                        this.setCurrentScene(SceneManager.GameScenes.menu);
+                    }
                 }
                 break;
             case SceneManager.GameScenes.settings:
