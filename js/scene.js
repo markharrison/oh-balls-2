@@ -1,9 +1,12 @@
 import { DiagnosticPanel } from './diagnostics.js';
 
 import { SceneBallsX } from './sceneballsx.js';
+import { SceneSplash } from './scenesplash.js';
+import { SceneConfig } from './sceneconfig.js';
 
 export class SceneManager {
     static GameScenes = Object.freeze({
+        splash: 'splash',
         main: 'main',
         ballsX: 'ballsX',
         config: 'config',
@@ -21,30 +24,44 @@ export class SceneManager {
         this.diagnosticsPanel = new DiagnosticPanel();
         this.diagnosticsPanel.registerSceneManager(this);
 
-        this.setCurrentScene(SceneManager.GameScenes.main);
-
-        this.createSceneBallsX();
+        this.setCurrentScene(SceneManager.GameScenes.splash);
     }
 
     setCurrentScene(scene) {
         this.currentScene = scene;
 
         switch (scene) {
+            case SceneManager.GameScenes.splash:
+                this.createSceneSplash();
+                break;
             case SceneManager.GameScenes.main:
                 break;
             case SceneManager.GameScenes.ballsX:
                 this.createSceneBallsX();
                 break;
             case SceneManager.GameScenes.config:
+                this.createSceneConfig();
                 break;
             default:
                 break;
         }
     }
 
+    createSceneSplash() {
+        if (!this.sceneSplash) {
+            this.sceneSplash = new SceneSplash(this.canvas);
+        }
+    }
+
     createSceneBallsX() {
         if (!this.sceneBallsX) {
             this.sceneBallsX = new SceneBallsX(this.canvas);
+        }
+    }
+
+    createSceneConfig() {
+        if (!this.sceneConfig) {
+            this.sceneConfig = new SceneConfig(this.canvas);
         }
     }
 
@@ -64,6 +81,9 @@ export class SceneManager {
         let vHtml = '';
 
         switch (this.currentScene) {
+            case SceneManager.GameScenes.splash:
+                vHtml = this.sceneSplash.getSceneStateHtml();
+                break;
             case SceneManager.GameScenes.main:
                 vHtml = this.getSceneMainStateHtml();
                 break;
@@ -71,6 +91,7 @@ export class SceneManager {
                 vHtml = this.sceneBallsX.getSceneStateHtml();
                 break;
             case SceneManager.GameScenes.config:
+                vHtml = this.sceneConfig.getSceneStateHtml();
                 break;
             default:
                 break;
@@ -84,7 +105,9 @@ export class SceneManager {
     start() {}
 
     destroy() {
+        this.sceneSplash = null;
         this.sceneBallsX = null;
+        this.sceneConfig = null;
         this.diagnosticsPanel = null;
     }
 
@@ -107,6 +130,19 @@ export class SceneManager {
         // Get all bodies and render them
     }
 
+    inputKeyPressedSplash(code) {
+        switch (code) {
+            case 'Enter':
+                this.setCurrentScene(SceneManager.GameScenes.main);
+                break;
+            case 'KeyC':
+                this.setCurrentScene(SceneManager.GameScenes.config);
+                break;
+            default:
+                break;
+        }
+    }
+
     inputKeyPressedMain(code) {
         switch (code) {
             case 'ArrowLeft':
@@ -115,6 +151,27 @@ export class SceneManager {
             case 'ArrowRight':
                 break;
             default:
+                break;
+        }
+    }
+
+    inputKeyPressedConfig(code) {
+        switch (code) {
+            case 'Escape':
+                this.setCurrentScene(SceneManager.GameScenes.main);
+                break;
+            case 'Enter':
+                // Check if Back option is selected
+                if (this.sceneConfig.selectedOption === 3) {
+                    this.setCurrentScene(SceneManager.GameScenes.main);
+                } else {
+                    // Pass other input to the config scene
+                    this.sceneConfig.inputKeyPressed(code, false);
+                }
+                break;
+            default:
+                // Pass other input to the config scene
+                this.sceneConfig.inputKeyPressed(code, false);
                 break;
         }
     }
@@ -128,6 +185,9 @@ export class SceneManager {
                 break;
             default: {
                 switch (this.currentScene) {
+                    case SceneManager.GameScenes.splash:
+                        this.inputKeyPressedSplash(code);
+                        break;
                     case SceneManager.GameScenes.main:
                         this.inputKeyPressedMain(code);
                         break;
@@ -135,6 +195,7 @@ export class SceneManager {
                         this.sceneBallsX.inputKeyPressed(code, debug);
                         break;
                     case SceneManager.GameScenes.config:
+                        this.inputKeyPressedConfig(code);
                         break;
                     default:
                         break;
@@ -156,6 +217,11 @@ export class SceneManager {
         this.inputHandler.getInput();
 
         switch (this.currentScene) {
+            case SceneManager.GameScenes.splash:
+                if (this.sceneSplash) {
+                    this.sceneSplash.updateFrame();
+                }
+                break;
             case SceneManager.GameScenes.main:
                 this.updateFrameMain();
                 break;
@@ -165,6 +231,9 @@ export class SceneManager {
                 }
                 break;
             case SceneManager.GameScenes.config:
+                if (this.sceneConfig) {
+                    this.sceneConfig.updateFrame();
+                }
                 break;
             default:
                 break;
