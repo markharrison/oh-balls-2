@@ -39,7 +39,7 @@ export class PhysicsEngine {
     create() {
         // Physics world operates in meters, conversion handled by PhysicsBody wrapper
         this.world = new planck.World({
-            allowSleep: false, // Disable sleeping completely for now
+            allowSleep: true, // Disable sleeping completely for now
         });
 
         // Set up contact listener for event handling
@@ -92,8 +92,6 @@ export class PhysicsEngine {
     // Update physics simulation
     update(stepTime) {
         if (this.world) {
-            // Use a fixed timestep for stability - stepTime parameter is ignored
-            // Scene.js will call this multiple times per frame for sub-stepping
             const fixedTimeStep = 1 / 60; // 60 FPS fixed timestep (0.0167 seconds)
             this.world.step(fixedTimeStep, 6, 3); // Reduced iterations back to original values
         }
@@ -284,7 +282,6 @@ export class PhysicsBody {
         return 0;
     }
 
-
     // set torque(value) {
     //     // Torque is applied through applyTorque method in Plank
     //     if (value !== 0) {
@@ -298,7 +295,7 @@ export class PhysicsBody {
     // }
 
     // // Direct Plank body access for complex operations
-    // get plankBody() {    
+    // get plankBody() {
     //     return this.body;
     // }
 
@@ -377,13 +374,9 @@ export class PhysicsBodyFactory {
         const bodyDef = {
             type: options.isStatic ? 'static' : 'dynamic',
             position: { x: meterX, y: meterY },
-            linearDamping: 0,
-            angularDamping: 0,
+            linearDamping: options.linearDamping ?? 0,
+            angularDamping: options.angularDamping ?? 0,
         };
-
-        if (options.angle !== undefined) {
-            bodyDef.angle = options.angle;
-        }
 
         const body = PhysicsBodyFactory.world.createBody(bodyDef);
 
@@ -395,21 +388,6 @@ export class PhysicsBodyFactory {
         };
 
         body.createFixture(fixtureDef);
-
-        // Calculate density from mass if provided (let Planck handle mass calculations)
-        // if (options.mass !== undefined) {
-        //     // Calculate density needed to achieve desired mass
-        //     // Mass = density * area, so density = mass / area
-        //     const area = Math.PI * meterRadius * meterRadius;
-        //     const desiredDensity = options.mass / area;
-
-        //     // Update the fixture's density
-        //     const fixture = body.getFixtureList();
-        //     if (fixture) {
-        //         fixture.setDensity(desiredDensity);
-        //         body.resetMassData(); // Recalculate mass based on new density
-        //     }
-        // }
 
         const userData = {
             id: PhysicsBodyFactory.generateId(),
@@ -437,17 +415,14 @@ export class PhysicsUtils {
     //         bodyB: new PhysicsBody(pair.bodyB),
     //     }));
     // }
-
     // Find collision pairs with specific labels
     // static findCollisionByLabels(event, labelA, labelB) {
     //     const results = [];
     //     event.pairs.forEach((pair) => {
     //         const bodyA = pair.bodyA;
     //         const bodyB = pair.bodyB;
-
     //         const labelAData = bodyA.getUserData()?.label || '';
     //         const labelBData = bodyB.getUserData()?.label || '';
-
     //         if ((labelAData === labelA && labelBData === labelB) || (labelAData === labelB && labelBData === labelA)) {
     //             results.push({
     //                 bodyA: new PhysicsBody(bodyA),

@@ -1,5 +1,7 @@
 import { BallManager } from './ball.js';
 import { PhysicsEngine, PhysicsBodyFactory, PhysicsUtils, metersToPixels } from './physics.js';
+import { wallThickness } from './constants.js';
+import { fixedTimeStep } from './constants.js';
 
 export class SceneManager {
     constructor(canvas) {
@@ -11,7 +13,7 @@ export class SceneManager {
         this.ballManager = new BallManager(this);
 
         this.physics = new PhysicsEngine().create();
-        this.physics.setGravity(0, 120); // Gentler gravity for relaxed gameplay
+        this.physics.setGravity(0, 300); // Gentler gravity for relaxed gameplay
         this.physics.setTimeScale(1);
 
         // Set world reference in factory
@@ -19,18 +21,19 @@ export class SceneManager {
 
         this.clock = {
             deltaTime: 0,
-            stepTime: 0,
-            steps: 0,
             currentTime: 0,
             lastStatsUpdate: 0,
-            cachedStepTime: 0,
-            cachedSteps: 0,
             cachedDeltaTime: 0,
             cachedFPS: 0,
+            stepCount: 0,
+            cachedStepCount: 0,
         };
 
         this.setupBoundaries();
         this.setupEventHandlers();
+
+        // Initialize accumulator for fixed timestep physics
+        this._physicsAccumulator = 0;
     }
 
     registerDiagnosticsPanel(diagnosticsPanel) {
@@ -44,19 +47,19 @@ export class SceneManager {
 
     getSceneStateHtml() {
         const now = performance.now();
-        if (now - this.clock.lastStatsUpdate > 500) {
-            this.clock.cachedDeltaTime = this.clock.deltaTime;
-            this.clock.cachedFPS = 1000 / this.clock.deltaTime;
-            this.clock.cachedStepTime = this.clock.stepTime;
-            this.clock.cachedSteps = this.clock.steps;
+        const timeDiff = now - this.clock.lastStatsUpdate;
+        if (timeDiff > 500) {
+            this.clock.cachedDeltaTime = this.clock.deltaTime.toFixed(2);
+            this.clock.cachedFPS = (1000 / this.clock.deltaTime).toFixed(1);
+            this.clock.cachedStepCount = ((this.clock.stepCount * 1000) / timeDiff).toFixed(1);
+            this.clock.stepCount = 0;
             this.clock.lastStatsUpdate = now;
         }
         const vHtml = `
             <strong>Scene State</strong><br>
-            Balls: ${this.ballManager.getBallBodies().length}<br>
-            Delta Time: ${this.clock.cachedDeltaTime.toFixed(2)}ms,&nbsp;
-            Step Time: ${this.clock.cachedStepTime.toFixed(2)}ms x ${this.clock.cachedSteps},&nbsp;
-            FPS: ${this.clock.cachedFPS.toFixed(1)}<br>
+            Delta Time: ${this.clock.cachedDeltaTime}ms,&nbsp;
+            FPS: ${this.clock.cachedFPS},&nbsp;
+            StepsPS: ${this.clock.cachedStepCount}<br>
         `;
         return vHtml;
     }
@@ -84,11 +87,11 @@ export class SceneManager {
     }
 
     setupBoundaries() {
-        const wallThickness = 16;
+        // Use shared wallThickness constant
         const width = this.canvas.width;
         const height = this.canvas.height;
         const restitution = 0.7;
-        const friction = 0.1;
+        const friction = 0.5;
 
         const renderGround = {
             fillStyle: '#00ffff',
@@ -223,7 +226,7 @@ export class SceneManager {
 
         if (renderRadius > 0) {
             ctx.beginPath();
-            ctx.arc(0, 0, renderRadius, 0, 6.28); // Use 6.28 instead of 2 * Math.PI for simplicity
+            ctx.arc(0, 0, renderRadius, 0, 6.28);
             ctx.fill();
 
             if (ctx.strokeStyle && strokeWidth > 0) {
@@ -253,16 +256,16 @@ export class SceneManager {
     }
 
     updatePhysics(deltaTime) {
-        const targetStepSize = 8.0;
-        const steps = Math.ceil(deltaTime / targetStepSize);
-        const stepTime = Math.min(deltaTime / steps, 16.667);
+        // Fixed timestep accumulator pattern
+        this._physicsAccumulator += deltaTime;
 
-        this.clock.stepTime = stepTime;
-        this.clock.steps = steps;
-
-        for (let i = 0; i < steps; i++) {
-            this.physics.update(stepTime);
+        while (this._physicsAccumulator >= fixedTimeStep) {
+            this.physics.update(fixedTimeStep);
+            this._physicsAccumulator -= fixedTimeStep;
+            this.clock.stepCount++;
         }
+
+        this.clock.stepTime = fixedTimeStep;
     }
 
     renderScene() {

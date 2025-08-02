@@ -1,5 +1,6 @@
 // Ball Module for creating and managing balls
 import { PhysicsBodyFactory, PhysicsConstants, pixelsToMeters } from './physics.js';
+import { wallThickness } from './constants.js';
 
 export class Ball {
     constructor(sceneManager, x, y) {
@@ -28,7 +29,9 @@ export class Ball {
             label: 'ball',
             density: 1,
             friction: 0.1,
-            restitution: 0.7,
+            restitution: 0.8,
+            linearDamping: 0.1,
+            angularDamping: 0.1,
             userData: userData,
         });
 
@@ -127,6 +130,7 @@ export class BallManager {
         this.currentBall = null;
         this.lastCleanupTime = 0;
         this.lastDropTime = 0;
+        this.lastCurrentBallPosition = this.sceneManager.canvas.width / 2;
     }
     start() {
         this.spawnBall();
@@ -151,6 +155,14 @@ export class BallManager {
         return vHtml;
     }
 
+    keepXWithinBounds(x, ball) {
+        const ballRadius = ball.radius;
+        const minX = wallThickness + ballRadius;
+        const maxX = this.sceneManager.canvas.width - wallThickness - ballRadius;
+        let newX = Math.max(minX, Math.min(maxX, x));
+        return newX;
+    }
+
     spawnBall() {
         if (this.currentBall !== null) {
             return;
@@ -160,10 +172,14 @@ export class BallManager {
             return;
         }
 
-        const x = this.sceneManager.canvas.width / 2;
-        const y = 50;
+        const x = 512;
+        const y = -100;
 
         this.currentBall = new Ball(this.sceneManager, x, y);
+
+        let newX = this.keepXWithinBounds(this.lastCurrentBallPosition, this.currentBall);
+
+        this.currentBall.setPosition(newX, 50);
     }
 
     dropCurrentBall() {
@@ -171,19 +187,9 @@ export class BallManager {
             return;
         }
 
-        let ballBodies = this.getBallBodies();
-
-        ballBodies.forEach((ballBody) => {
-            const ball = ballBody.getUserData()?.ball;
-            if (ball) {
-                ball.physicsBody.setSleeping(false);
-            }
-        });
-
         this.currentBall.release();
         this.lastDropTime = performance.now();
 
-        // Release the ball from player control
         this.currentBall = null;
     }
 
@@ -196,15 +202,11 @@ export class BallManager {
         const moveDistance = 5; // Distance to move per frame
         let newX = currentPos.x + direction * moveDistance;
 
-        // Keep within bounds (accounting for ball radius)
-        const ballRadius = this.currentBall.radius;
-        const wallThickness = 16; // Updated wall thickness
-        const minX = wallThickness + ballRadius;
-        const maxX = this.sceneManager.canvas.width - wallThickness - ballRadius;
-
-        newX = Math.max(minX, Math.min(maxX, newX));
+        // Use keepXWithinBounds, which now uses WALL_THICKNESS
+        newX = this.keepXWithinBounds(newX, this.currentBall);
 
         this.currentBall.setPosition(newX, currentPos.y);
+        this.lastCurrentBallPosition = newX;
     }
 
     updateFrame() {
@@ -220,42 +222,6 @@ export class BallManager {
         this.cleanup();
     }
 
-    // stopJittering() {
-    //     let now = performance.now();
-    //     if (now - this.lastDropTime < 3000) {
-    //         return;
-    //     }
-
-    //     let ballBodies = this.getBallBodies();
-    //     ballBodies.forEach((ballBody) => {
-    //         const ball = ballBody.getUserData()?.ball;
-    //         if (ball.physicsBody.isStatic()) return;
-    //         if (ball.physicsBody.isSleeping()) return;
-
-    //         const velocity = ball.physicsBody.getVelocity();
-    //         const speedSquared = velocity.x * velocity.x + velocity.y * velocity.y;
-    //         const isMovingSlowly = speedSquared < PhysicsConstants.slowLinearVelocityThreshold * 100;
-    //         const angularVelocity = ball.physicsBody.getAngularVelocity();
-    //         const isRotatingSlowly = Math.abs(angularVelocity) < PhysicsConstants.slowAngularVelocityThreshold;
-
-    //         // Stop micro-movements gradually to prevent sudden stops
-    //         if (isMovingSlowly && now - this.lastDropTime > 5000) {
-    //             const currentVel = ball.physicsBody.getVelocity();
-    //             ball.physicsBody.setVelocity(currentVel.x * 0.95, currentVel.y * 0.95);
-    //         }
-
-    //         // Check angular velocity separately and stop if it's very small
-    //         if (isRotatingSlowly) {
-    //             ball.physicsBody.setAngularVelocity(0);
-    //         }
-
-    //         // Only put to sleep if truly stationary for a long time
-    //         if (isMovingSlowly && isRotatingSlowly && now - this.lastDropTime > 10000) {
-    //             ball.physicsBody.setSleeping(true);
-    //         }
-    //     });
-    // }
-
     cleanup() {
         let now = performance.now();
         if (now - this.lastCleanupTime < 15000) {
@@ -265,7 +231,7 @@ export class BallManager {
 
         console.log('Cleaning up balls... ' + now);
 
-        const canvasWidth = this.sceneManager.canvas.width;
+        //      const canvasWidth = this.sceneManager.canvas.width;
         const canvasHeight = this.sceneManager.canvas.height;
 
         let ballBodies = this.getBallBodies();
@@ -274,7 +240,8 @@ export class BallManager {
             const ball = ballBody.getUserData()?.ball;
             if (ball) {
                 const pos = ball.getPosition();
-                const isOffScreen = pos.x < 0 || pos.x > canvasWidth || pos.y < 0 || pos.y > canvasHeight;
+                //               const isOffScreen = pos.x < 0 || pos.x > canvasWidth || pos.y < 0 || pos.y > canvasHeight;
+                const isOffScreen = pos.y > canvasHeight + 100; // Allow some space below the canvas
 
                 if (isOffScreen) {
                     ball.destroy();
@@ -284,13 +251,13 @@ export class BallManager {
     }
 
     testBalls() {
-        console.log('Testing balls...');
 
         let ballBodies = this.getBallBodies();
+        let sizeZap = generateRandomSize();
 
         ballBodies.forEach((ballBody) => {
             const ball = ballBody.getUserData()?.ball;
-            if (ball && ball.size == 5) {
+            if (ball && ball.size == sizeZap) {
                 const pos = ball.getPosition();
                 ball.setPosition(pos.x - 2000, pos.y);
             }

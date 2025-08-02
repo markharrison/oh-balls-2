@@ -64,7 +64,6 @@ export class InputHandler {
             case 'KeyT':
                 if (!this.keyPressed.t) {
                     this.keyPressed.t = true;
-                    alert('Testing ball drop functionality');
                     this.sceneManager.inputKeyPressed(event.code);
                 }
                 break;
