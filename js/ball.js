@@ -132,9 +132,6 @@ export class BallManager {
         this.lastDropTime = 0;
         this.lastCurrentBallPosition = this.sceneManager.canvas.width / 2;
     }
-    start() {
-        this.spawnBall();
-    }
 
     getBallBodies() {
         return this.sceneManager.physics.getBodiesByLabel('ball');
@@ -256,7 +253,7 @@ export class BallManager {
 
         ballBodies.forEach((ballBody) => {
             const ball = ballBody.getUserData()?.ball;
-            if (ball && ball.size == sizeZap) {
+            if (ball && ball.size == sizeZap && !ball.physicsBody.isStatic()) {
                 const pos = ball.getPosition();
                 ball.setPosition(pos.x - 2000, pos.y);
             }

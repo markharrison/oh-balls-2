@@ -8,7 +8,6 @@ export class SceneBallsX {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.inputHandler = null;
-        this.diagnosticsPanel = null;
 
         this.ballManager = new BallManager(this);
 
@@ -36,15 +35,6 @@ export class SceneBallsX {
         this._physicsAccumulator = 0;
     }
 
-    registerDiagnosticsPanel(diagnosticsPanel) {
-        this.diagnosticsPanel = diagnosticsPanel;
-    }
-
-    registerInputHandler(inputHandler) {
-        this.inputHandler = inputHandler;
-        this.inputHandler.registerSceneManager(this);
-    }
-
     getSceneStateHtml() {
         const now = performance.now();
         const timeDiff = now - this.clock.lastStatsUpdate;
@@ -59,8 +49,11 @@ export class SceneBallsX {
             <strong>Scene: BallsX</strong><br>
             Delta Time: ${this.clock.cachedDeltaTime}ms,&nbsp;
             FPS: ${this.clock.cachedFPS},&nbsp;
-            StepsPS: ${this.clock.cachedStepCount}<br>
+            StepsPS: ${this.clock.cachedStepCount}
+            <br><hr style="border: none; border-top: 1px solid #00ff00; margin-top: 5px; margin-bottom: 5px;">
+            ${this.ballManager.getBallsStateHtml()}
         `;
+
         return vHtml;
     }
 
@@ -146,17 +139,6 @@ export class SceneBallsX {
 
     start() {
         this.ballManager.start();
-    }
-
-    stop() {}
-
-    destroy() {
-        this.ballManager = null;
-
-        if (this.physics) {
-            this.physics.destroy();
-            this.physics = null;
-        }
     }
 
     addBody(body) {
@@ -294,7 +276,7 @@ export class SceneBallsX {
         });
     }
 
-    inputKeyPressed(code) {
+    inputKeyPressed(code, debug) {
         switch (code) {
             case 'ArrowLeft':
                 this.ballManager.moveCurrentBall(-1);
@@ -307,7 +289,7 @@ export class SceneBallsX {
                 this.ballManager.dropCurrentBall();
                 break;
             case 'KeyT':
-                if (this.diagnosticsPanel.enabled) {
+                if (debug) {
                     this.ballManager.testBalls();
                 }
                 break;
@@ -322,14 +304,10 @@ export class SceneBallsX {
         this.clock.currentTime = currentTime;
         this.clock.deltaTime = this.clock.currentTime - lastTime;
 
-        this.inputHandler.getInput();
-
         this.updatePhysics(this.clock.deltaTime);
 
         this.ballManager.updateFrame();
 
         this.renderScene();
-
-        this.diagnosticsPanel.renderPanel();
     }
 }

@@ -33,7 +33,7 @@ export class DiagnosticPanel {
         `;
 
         this.panel.innerHTML = `
-            <h3 style="margin-top: 0; color: #00ffff;">🔧 Physics Diagnostics</h3>
+            <h3 style="margin-top: 0; margin-bottom:5px; color: #00ffff;">🔧 Diagnostics</h3>
             <div id="diagnostic-content"></div>
         `;
 
@@ -44,8 +44,8 @@ export class DiagnosticPanel {
         this.ballManager = ballManager;
     }
 
-    registerSceneBallsX(sceneBallsX) {
-        this.sceneBallsX = sceneBallsX;
+    registerSceneManager(sceneManager) {
+        this.sceneManager = sceneManager;
     }
 
     toggle() {
@@ -61,21 +61,21 @@ export class DiagnosticPanel {
 
             content.innerHTML = ''; // Clear previous content
 
-            if (this.sceneBallsX) {
+            if (this.sceneManager) {
                 content.innerHTML += `
                     <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                        ${this.sceneBallsX.getSceneStateHtml()}
+                        ${this.sceneManager.getSceneStateHtml()}  
                     </div>
                 `;
             }
 
-            if (this.ballManager) {
-                content.innerHTML += `
-                    <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                        ${this.ballManager.getBallsStateHtml()}
-                    </div>
-                `;
-            }
+            // if (this.ballManager) {
+            //     content.innerHTML += `
+            //         <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
+            //             ${this.ballManager.getBallsStateHtml()}
+            //         </div>
+            //     `;
+            // }
         }
     }
 

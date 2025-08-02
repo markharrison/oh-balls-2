@@ -1,54 +1,38 @@
-// Main Game Controller
-import { SceneBallsX } from './sceneballsx.js';
+import { SceneManager } from './scene.js';
 import { InputHandler } from './input.js';
-import { DiagnosticPanel } from './diagnostics.js';
 
 class Main {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.running = false;
 
-        this.diagnosticsPanel = new DiagnosticPanel();
         this.inputHandler = new InputHandler();
         this.inputHandler.registerDiagnosticsPanel(this.diagnosticsPanel);
 
-        // Initialize core systems
-        this.sceneBallsX = new SceneBallsX(this.canvas);
-        this.sceneBallsX.registerInputHandler(this.inputHandler);
-        this.sceneBallsX.registerDiagnosticsPanel(this.diagnosticsPanel);
-
-        this.diagnosticsPanel.registerSceneBallsX(this.sceneBallsX);
-        this.diagnosticsPanel.registerBallManager(this.sceneBallsX.ballManager);
-    }
-
-    start() {
-        if (this.running) return;
-        this.sceneBallsX.start();
-
-        this.running = true;
-        this.gameLoop();
-    }
-
-    stop() {
-        this.running = false;
-        this.sceneBallsX.stop();
+        this.sceneManager = new SceneManager(this.canvas);
+        this.sceneManager.registerInputHandler(this.inputHandler);
     }
 
     gameLoop() {
         if (!this.running) return;
 
-        this.sceneBallsX.updateFrame();
+        this.sceneManager.updateFrame();
 
         requestAnimationFrame(() => this.gameLoop());
     }
 
-    destroy() {
-        this.stop();
-        this.sceneBallsX.destroy();
-        this.sceneBallsX = null; // Remove reference for GC
+    start() {
+        if (this.running) return;
 
+        this.sceneManager.start();
+
+        this.running = true;
+        this.gameLoop();
+    }
+
+    destroy() {
+        this.sceneManager = null;
         this.inputHandler = null;
-        this.diagnosticsPanel = null;
     }
 }
 
