@@ -1,9 +1,9 @@
 // Main Game Controller
-import { SceneManager } from './scene.js';
+import { SceneBallsX } from './sceneballsx.js';
 import { InputHandler } from './input.js';
 import { DiagnosticPanel } from './diagnostics.js';
 
-class Game {
+class Main {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.running = false;
@@ -13,17 +13,17 @@ class Game {
         this.inputHandler.registerDiagnosticsPanel(this.diagnosticsPanel);
 
         // Initialize core systems
-        this.sceneManager = new SceneManager(this.canvas);
-        this.sceneManager.registerInputHandler(this.inputHandler);
-        this.sceneManager.registerDiagnosticsPanel(this.diagnosticsPanel);
+        this.sceneBallsX = new SceneBallsX(this.canvas);
+        this.sceneBallsX.registerInputHandler(this.inputHandler);
+        this.sceneBallsX.registerDiagnosticsPanel(this.diagnosticsPanel);
 
-        this.diagnosticsPanel.registerSceneManager(this.sceneManager);
-        this.diagnosticsPanel.registerBallManager(this.sceneManager.ballManager);
+        this.diagnosticsPanel.registerSceneBallsX(this.sceneBallsX);
+        this.diagnosticsPanel.registerBallManager(this.sceneBallsX.ballManager);
     }
 
     start() {
         if (this.running) return;
-        this.sceneManager.start();
+        this.sceneBallsX.start();
 
         this.running = true;
         this.gameLoop();
@@ -37,15 +37,15 @@ class Game {
     gameLoop() {
         if (!this.running) return;
 
-        this.sceneManager.updateFrame();
+        this.sceneBallsX.updateFrame();
 
         requestAnimationFrame(() => this.gameLoop());
     }
 
     destroy() {
         this.stop();
-        this.sceneManager.destroy();
-        this.sceneManager = null; // Remove reference for GC
+        this.sceneBallsX.destroy();
+        this.sceneBallsX = null; // Remove reference for GC
 
         this.inputHandler = null;
         this.diagnosticsPanel = null;
@@ -55,19 +55,16 @@ class Game {
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Create global game instance
-    window.game = new Game();
+    window.main = new Main();
 
-    window.game.start();
+    window.main.start();
 
     // Add debug command to console
-    window.gameDebug = () => {
-        console.log('Game State:', window.game.getGameState());
-    };
 });
 
 // Handle page unload cleanup
 window.addEventListener('beforeunload', () => {
-    if (window.game) {
-        window.game.destroy();
+    if (window.main) {
+        window.main.destroy();
     }
 });

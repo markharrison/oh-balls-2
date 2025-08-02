@@ -2,10 +2,15 @@
 import { PhysicsBodyFactory, PhysicsConstants, pixelsToMeters } from './physics.js';
 import { wallThickness } from './constants.js';
 
+export function generateRandomSize() {
+    // Random size from 1 to 5 as specified
+    return Math.floor(Math.random() * 5) + 1;
+}
+
 export class Ball {
     constructor(sceneManager, x, y) {
         this.sceneManager = sceneManager;
-        this.size = this.generateRandomSize();
+        this.size = generateRandomSize();
         this.radius = this.calculateRadius(this.size);
         this.color = this.getColorForSize(this.size);
 
@@ -68,11 +73,6 @@ export class Ball {
         vHtml += '<br/>';
 
         return vHtml;
-    }
-
-    generateRandomSize() {
-        // Random size from 1 to 5 as specified
-        return Math.floor(Math.random() * 5) + 1;
     }
 
     calculateRadius(size) {
@@ -251,7 +251,6 @@ export class BallManager {
     }
 
     testBalls() {
-
         let ballBodies = this.getBallBodies();
         let sizeZap = generateRandomSize();
 

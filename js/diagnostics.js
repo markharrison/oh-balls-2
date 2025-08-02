@@ -44,8 +44,8 @@ export class DiagnosticPanel {
         this.ballManager = ballManager;
     }
 
-    registerSceneManager(sceneManager) {
-        this.sceneManager = sceneManager;
+    registerSceneBallsX(sceneBallsX) {
+        this.sceneBallsX = sceneBallsX;
     }
 
     toggle() {
@@ -61,10 +61,10 @@ export class DiagnosticPanel {
 
             content.innerHTML = ''; // Clear previous content
 
-            if (this.sceneManager) {
+            if (this.sceneBallsX) {
                 content.innerHTML += `
                     <div style="border-bottom: 1px solid #00ff00; margin-bottom: 10px; padding-bottom: 5px;">
-                        ${this.sceneManager.getSceneStateHtml()}
+                        ${this.sceneBallsX.getSceneStateHtml()}
                     </div>
                 `;
             }
