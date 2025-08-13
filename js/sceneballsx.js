@@ -1,4 +1,4 @@
-import { SceneBase } from './SceneBase.js';
+import { SceneBase } from './screenmanager.js';
 import { BallManager } from './ball.js';
 import { PhysicsEngine, PhysicsBodyFactory, PhysicsUtils, metersToPixels } from './physics.js';
 import { wallThickness } from './constants.js';

@@ -1,4 +1,4 @@
-import { SceneManager } from './scene.js';
+import { SceneManager } from './screenmanager.js';
 import { InputHandler } from './input.js';
 
 class Main {
