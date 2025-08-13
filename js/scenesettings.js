@@ -1,5 +1,8 @@
-export class SceneSettings {
-    constructor(canvas) {
+import { SceneBase } from './SceneBase.js';
+
+export class SceneSettings extends SceneBase {
+    constructor(canvas, manager) {
+        super(manager);
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.inputHandler = null;
@@ -18,6 +21,28 @@ export class SceneSettings {
 
         this.selectedOption = 0;
         this.options = ['Sound', 'Difficulty', 'Graphics', 'Back'];
+    }
+
+    enter() {
+        // Called when the scene becomes active
+    }
+
+    exit() {
+        // Called when the scene is deactivated
+    }
+
+    update(dt) {
+        // Update timing
+        const currentTime = performance.now();
+        const lastTime = this.clock.currentTime;
+        this.clock.currentTime = currentTime;
+        this.clock.deltaTime = this.clock.currentTime - lastTime;
+
+        return null; // No automatic transitions - handled by input
+    }
+
+    render(ctx) {
+        this.renderScene();
     }
 
     getSceneStateHtml() {
@@ -140,14 +165,5 @@ export class SceneSettings {
             default:
                 break;
         }
-    }
-
-    updateFrame() {
-        const currentTime = performance.now();
-        const lastTime = this.clock.currentTime;
-        this.clock.currentTime = currentTime;
-        this.clock.deltaTime = this.clock.currentTime - lastTime;
-
-        this.renderScene();
     }
 }
