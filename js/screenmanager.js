@@ -1,33 +1,10 @@
 import { DiagnosticPanel } from './diagnostics.js';
+import { SceneBase } from './scenebase.js';
 
 import { SceneBallsX } from './sceneballsx.js';
 import { SceneSplash } from './scenesplash.js';
 import { SceneMenu } from './scenemenu.js';
 import { SceneSettings } from './scenesettings.js';
-
-export class SceneBase {
-    constructor(manager) {
-        this.manager = manager; // Optional: reference to SceneManager if needed
-    }
-
-    enter() {
-        // Called when the scene becomes active
-    }
-
-    exit() {
-        // Called when the scene is deactivated
-    }
-
-    update(dt) {
-        // Called every tick; return string (scene key) to request transition
-        // Return null/undefined to stay in this scene
-        return null;
-    }
-
-    render(ctx) {
-        // Render to canvas/context/etc.
-    }
-}
 
 export class SceneManager {
     static GameScenes = Object.freeze({
