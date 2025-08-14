@@ -1,10 +1,12 @@
+import { SceneBase } from './scenebase.js';
 import { BallManager } from './ball.js';
 import { PhysicsEngine, PhysicsBodyFactory, PhysicsUtils, metersToPixels } from './physics.js';
 import { wallThickness } from './constants.js';
 import { fixedTimeStep } from './constants.js';
 
-export class SceneBallsX {
-    constructor(canvas) {
+export class SceneBallsX extends SceneBase {
+    constructor(canvas, manager) {
+        super(manager);
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.inputHandler = null;
@@ -355,7 +357,8 @@ export class SceneBallsX {
         if (this.showExitDialog) {
             switch (code) {
                 case 'ArrowLeft':
-                    this.dialogSelectedOption = (this.dialogSelectedOption - 1 + this.dialogOptions.length) % this.dialogOptions.length;
+                    this.dialogSelectedOption =
+                        (this.dialogSelectedOption - 1 + this.dialogOptions.length) % this.dialogOptions.length;
                     break;
                 case 'ArrowRight':
                     this.dialogSelectedOption = (this.dialogSelectedOption + 1) % this.dialogOptions.length;
@@ -408,6 +411,39 @@ export class SceneBallsX {
         }
     }
 
+    enter() {
+        // Called when the scene becomes active
+        // The BallManager will start spawning balls via its updateFrame method
+    }
+
+    exit() {
+        // Called when the scene is deactivated
+    }
+
+    update(dt) {
+        // Update timing
+        const currentTime = performance.now();
+        const lastTime = this.clock.currentTime;
+        this.clock.currentTime = currentTime;
+        this.clock.deltaTime = this.clock.currentTime - lastTime;
+
+        this.updatePhysics(this.clock.deltaTime);
+        this.ballManager.updateFrame();
+
+        // Check for exit to menu request only once
+        if (this.exitToMenu) {
+            console.log('Exit to menu requested, transitioning to menu scene');
+            this.exitToMenu = false; // Reset the flag
+            return 'menu'; // Return the target scene key
+        }
+
+        return null; // Stay in this scene
+    }
+
+    render(ctx) {
+        this.renderScene();
+    }
+
     shouldExitToMenu() {
         console.log('shouldExitToMenu called, exitToMenu:', this.exitToMenu);
         return this.exitToMenu;
@@ -415,18 +451,5 @@ export class SceneBallsX {
 
     markExitProcessed() {
         this.exitToMenu = false;
-    }
-
-    updateFrame() {
-        const currentTime = performance.now();
-        const lastTime = this.clock.currentTime;
-        this.clock.currentTime = currentTime;
-        this.clock.deltaTime = this.clock.currentTime - lastTime;
-
-        this.updatePhysics(this.clock.deltaTime);
-
-        this.ballManager.updateFrame();
-
-        this.renderScene();
     }
 }

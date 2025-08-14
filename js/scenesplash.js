@@ -1,5 +1,8 @@
-export class SceneSplash {
-    constructor(canvas) {
+import { SceneBase } from './scenebase.js';
+
+export class SceneSplash extends SceneBase {
+    constructor(canvas, manager) {
+        super(manager);
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.inputHandler = null;
@@ -9,9 +12,38 @@ export class SceneSplash {
             currentTime: 0,
         };
 
-        this.startTime = performance.now();
+        this.startTime = null;
         this.displayDuration = 5000; // 5 seconds
         this.hasTransitioned = false;
+    }
+
+    enter() {
+        // Called when the scene becomes active
+        this.startTime = performance.now();
+        this.hasTransitioned = false;
+    }
+
+    exit() {
+        // Called when the scene is deactivated
+    }
+
+    update(dt) {
+        // Update timing
+        const currentTime = performance.now();
+        const lastTime = this.clock.currentTime;
+        this.clock.currentTime = currentTime;
+        this.clock.deltaTime = this.clock.currentTime - lastTime;
+
+        // Check for auto-transition
+        if (this.shouldTransition()) {
+            this.hasTransitioned = true;
+            return 'menu'; // Return the target scene key
+        }
+        return null; // Stay in this scene
+    }
+
+    render(ctx) {
+        this.renderScene();
     }
 
     getSceneStateHtml() {
@@ -22,10 +54,6 @@ export class SceneSplash {
     }
 
     setupEventHandlers() {}
-
-    start() {}
-
-    destroy() {}
 
     renderScene() {
         const ballInfoElement = document.getElementById('currentBallSize');
@@ -63,19 +91,10 @@ export class SceneSplash {
     }
 
     shouldTransition() {
-        return performance.now() - this.startTime >= this.displayDuration && !this.hasTransitioned;
+        return this.startTime && performance.now() - this.startTime >= this.displayDuration && !this.hasTransitioned;
     }
 
     markTransitioned() {
         this.hasTransitioned = true;
-    }
-
-    updateFrame() {
-        const currentTime = performance.now();
-        const lastTime = this.clock.currentTime;
-        this.clock.currentTime = currentTime;
-        this.clock.deltaTime = this.clock.currentTime - lastTime;
-
-        this.renderScene();
     }
 }

@@ -1,4 +1,4 @@
-import { SceneManager } from './scene.js';
+import { SceneManager } from './screenmanager.js';
 import { InputHandler } from './input.js';
 
 class Main {
@@ -22,8 +22,6 @@ class Main {
 
     start() {
         if (this.running) return;
-
-        this.sceneManager.start();
 
         this.running = true;
         this.gameLoop();

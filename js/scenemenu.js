@@ -1,5 +1,8 @@
-export class SceneMenu {
-    constructor(canvas) {
+import { SceneBase } from './scenebase.js';
+
+export class SceneMenu extends SceneBase {
+    constructor(canvas, manager) {
+        super(manager);
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.inputHandler = null;
@@ -13,6 +16,28 @@ export class SceneMenu {
         this.options = ['Start Game', 'Settings'];
     }
 
+    enter() {
+        // Called when the scene becomes active
+    }
+
+    exit() {
+        // Called when the scene is deactivated
+    }
+
+    update(dt) {
+        // Update timing
+        const currentTime = performance.now();
+        const lastTime = this.clock.currentTime;
+        this.clock.currentTime = currentTime;
+        this.clock.deltaTime = this.clock.currentTime - lastTime;
+
+        return null; // No automatic transitions - handled by input
+    }
+
+    render(ctx) {
+        this.renderScene();
+    }
+
     getSceneStateHtml() {
         const vHtml = `
             <strong>Scene: Menu</strong><br>
@@ -22,10 +47,6 @@ export class SceneMenu {
     }
 
     setupEventHandlers() {}
-
-    start() {}
-
-    destroy() {}
 
     renderScene() {
         const ballInfoElement = document.getElementById('currentBallSize');
@@ -86,14 +107,5 @@ export class SceneMenu {
             default:
                 break;
         }
-    }
-
-    updateFrame() {
-        const currentTime = performance.now();
-        const lastTime = this.clock.currentTime;
-        this.clock.currentTime = currentTime;
-        this.clock.deltaTime = this.clock.currentTime - lastTime;
-
-        this.renderScene();
     }
 }
