@@ -48,10 +48,6 @@ export class SceneMenu extends SceneBase {
 
     setupEventHandlers() {}
 
-    start() {}
-
-    destroy() {}
-
     renderScene() {
         const ballInfoElement = document.getElementById('currentBallSize');
         ballInfoElement.textContent = 'Harrison Digital - Main Menu';

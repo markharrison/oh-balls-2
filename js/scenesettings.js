@@ -57,10 +57,6 @@ export class SceneSettings extends SceneBase {
 
     setupEventHandlers() {}
 
-    start() {}
-
-    destroy() {}
-
     renderScene() {
         const ballInfoElement = document.getElementById('currentBallSize');
         ballInfoElement.textContent = 'Harrison Digital - Settings';

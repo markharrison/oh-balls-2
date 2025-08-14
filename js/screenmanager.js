@@ -98,12 +98,10 @@ export class SceneManager {
 
     setupEventHandlers() {}
 
-    start() {}
-
     destroy() {
         Object.values(this.scenes).forEach(scene => {
-            if (scene.destroy) {
-                scene.destroy();
+            if (scene.exit) {
+                scene.exit();
             }
         });
         this.scenes = null;
