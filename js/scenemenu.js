@@ -1,4 +1,4 @@
-import { SceneBase } from './screenmanager.js';
+import { SceneBase } from './scenebase.js';
 
 export class SceneMenu extends SceneBase {
     constructor(canvas, manager) {
