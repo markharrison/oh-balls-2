@@ -1,5 +1,28 @@
 import { DiagnosticPanel } from './diagnostics.js';
-import { SceneBase } from './scenebase.js';
+
+export class SceneBase {
+    constructor(manager) {
+        this.manager = manager; // Optional: reference to SceneManager if needed
+    }
+
+    enter() {
+        // Called when the scene becomes active
+    }
+
+    exit() {
+        // Called when the scene is deactivated
+    }
+
+    update(dt) {
+        // Called every tick; return string (scene key) to request transition
+        // Return null/undefined to stay in this scene
+        return null;
+    }
+
+    render(ctx) {
+        // Render to canvas/context/etc.
+    }
+}
 
 import { SceneBallsX } from './sceneballsx.js';
 import { SceneSplash } from './scenesplash.js';
@@ -36,7 +59,7 @@ export class SceneManager {
         };
 
         // Set manager reference for scenes that need it
-        Object.values(this.scenes).forEach(scene => {
+        Object.values(this.scenes).forEach((scene) => {
             if (scene.setManager) {
                 scene.setManager(this);
             }
@@ -99,7 +122,7 @@ export class SceneManager {
     setupEventHandlers() {}
 
     destroy() {
-        Object.values(this.scenes).forEach(scene => {
+        Object.values(this.scenes).forEach((scene) => {
             if (scene.exit) {
                 scene.exit();
             }

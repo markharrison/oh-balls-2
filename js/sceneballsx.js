@@ -1,4 +1,4 @@
-import { SceneBase } from './scenebase.js';
+import { SceneBase } from './screenmanager.js';
 import { BallManager } from './ball.js';
 import { PhysicsEngine, PhysicsBodyFactory, PhysicsUtils, metersToPixels } from './physics.js';
 import { wallThickness } from './constants.js';
@@ -357,7 +357,8 @@ export class SceneBallsX extends SceneBase {
         if (this.showExitDialog) {
             switch (code) {
                 case 'ArrowLeft':
-                    this.dialogSelectedOption = (this.dialogSelectedOption - 1 + this.dialogOptions.length) % this.dialogOptions.length;
+                    this.dialogSelectedOption =
+                        (this.dialogSelectedOption - 1 + this.dialogOptions.length) % this.dialogOptions.length;
                     break;
                 case 'ArrowRight':
                     this.dialogSelectedOption = (this.dialogSelectedOption + 1) % this.dialogOptions.length;
@@ -435,7 +436,7 @@ export class SceneBallsX extends SceneBase {
             this.exitToMenu = false; // Reset the flag
             return 'menu'; // Return the target scene key
         }
-        
+
         return null; // Stay in this scene
     }
 
